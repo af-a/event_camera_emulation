@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import sys
+import argparse
+
+import rospy
+import cv2
+
+from event_camera_emulation.emulator import EventCameraEmulator
+
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
+
+camera_device_ = None
+bridge = CvBridge()
+
+image_publisher_ = None
+event_image_publisher_ = None
+current_image_msg_ = None
+
+def image_callback(msg):
+    global current_image_msg_
+    current_image_msg_ = msg
+
+
+if __name__ == '__main__':
+    rospy.init_node('event_image_streamer')
+    rate = rospy.Rate(30)         # currently highest achievable
+
+    source_type = rospy.get_param('~source_type', 'camera_device')
+    publish_output = rospy.get_param('~publish_output', True)
+    display_output = rospy.get_param('~display_output', False)
+
+    original_image_publisher_ = rospy.Publisher('original_image', Image, queue_size=10)
+    event_image_publisher_ = rospy.Publisher('event_image', Image, queue_size=10)
+
+    if source_type == 'camera_device':
+        camera_device_id = rospy.get_param('~camera_device_id', 0)
+        rospy.loginfo('[event_image_streamer] Accessing camera device: {}'.format(camera_device_id))
+        try:
+            camera_device_ = cv2.VideoCapture(int(camera_device_id))
+        except Exception as e:
+            rospy.loginfo('[event_image_streamer] Could not access specified camera device!')
+            print('Error:', e)
+            sys.exit()
+
+        if camera_device_.isOpened():
+            rospy.loginfo('[event_image_streamer] Successfully opened camera device')
+            _, previous_image = camera_device_.read()
+        else:
+            rospy.loginfo('[event_image_streamer] Could not open camera device!')
+            sys.exit()
+    elif source_type == 'ros_topic':
+        image_topic = rospy.get_param('~image_topic', '/camera/color/image_raw')
+        image_subscriber = rospy.Subscriber(image_topic, Image, image_callback)
+
+        rospy.loginfo('[event_image_streamer] Subscribing to image topic: {}'.format(image_topic))
+        rospy.loginfo('[event_image_streamer] Waiting for reception of first image message...')
+        try:
+            while current_image_msg_ is None:
+                rospy.sleep(0.1)
+        except (KeyboardInterrupt, rospy.ROSInterruptException):
+            rospy.loginfo('[event_image_streamer] Terminating...')
+            sys.exit()
+
+        rospy.loginfo('[event_image_streamer] Received first image message')
+        try:
+            previous_image = bridge.imgmsg_to_cv2(current_image_msg_, "bgr8")
+        except CvBridgeError as e:
+            rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
+            print('Error:', e)
+            sys.exit()
+
+    e_camera_emulator = EventCameraEmulator()
+
+    rospy.loginfo('[event_image_streamer] Streaming emulated event images')
+    try:
+        while not rospy.is_shutdown(): 
+            if source_type == 'camera_device':
+                _, current_image = camera_device_.read()
+            elif source_type == 'ros_topic':
+                try:
+                    current_image = bridge.imgmsg_to_cv2(current_image_msg_, "bgr8")
+                except CvBridgeError as e:
+                    rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
+                    print('Error:', e)
+                    continue
+            event_image = e_camera_emulator.get_events_image(current_image, previous_image, 15)
+
+            if publish_output:
+                original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
+                event_image_publisher_.publish(bridge.cv2_to_imgmsg(event_image, encoding="bgr8"))
+            if display_output:
+                cv2.imshow('Original Camera stream', current_image) 
+                cv2.imshow('Simulated Event Camera stream', event_image)
+                cv2.waitKey(1)
+
+            previous_image = current_image
+            rate.sleep()
+    except (KeyboardInterrupt, rospy.ROSInterruptException):
+        rospy.loginfo('[event_image_streamer] Finished streaming, exiting program...')
+        if source_type == 'camera_device':
+            camera_device_.release() 
+        if display_output:
+            cv2.destroyAllWindows() 

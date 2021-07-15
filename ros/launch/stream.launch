@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+    <arg name="source_type" default="camera_device"/>
+    <arg name="camera_device_id" default="0"/>
+    <arg name="image_topic" default="/camera/color/image_raw"/>
+    <arg name="publish_output" default="True"/>
+    <arg name="display_output" default="False"/>
+
+    <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
+        output="screen" respawn="false">
+        <param name="source_type" type="str" value="$(arg source_type)"/>
+        <param name="camera_device_id" type="int" value="$(arg camera_device_id)"/>
+        <param name="image_topic" type="str" value="$(arg image_topic)"/>
+        <param name="publish_output" type="bool" value="$(arg publish_output)"/>
+        <param name="display_output" type="bool" value="$(arg display_output)"/>
+    </node>
+
+</launch>
+
