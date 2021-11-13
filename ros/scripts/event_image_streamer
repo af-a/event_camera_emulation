@@ -94,7 +94,9 @@ if __name__ == '__main__':
 
             if publish_output:
                 original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
-                event_image_publisher_.publish(bridge.cv2_to_imgmsg(event_image, encoding="bgr8"))
+                event_image_msg = bridge.cv2_to_imgmsg(event_image, encoding="bgr8")
+                event_image_msg.header.stamp = rospy.Time.now()
+                event_image_publisher_.publish(event_image_msg)
             if display_output:
                 cv2.imshow('Original Camera stream', current_image) 
                 cv2.imshow('Simulated Event Camera stream', event_image)
