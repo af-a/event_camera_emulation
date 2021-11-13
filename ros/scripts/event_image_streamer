@@ -33,8 +33,8 @@ if __name__ == '__main__':
     theta = rospy.get_param('~theta', 60)
     record_off_events = rospy.get_param('~record_off_events', True)
 
-    original_image_publisher_ = rospy.Publisher('original_image', Image, queue_size=10)
-    event_image_publisher_ = rospy.Publisher('event_image', Image, queue_size=10)
+    original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
+    event_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
 
     if source_type == 'camera_device':
         camera_device_id = rospy.get_param('~camera_device_id', 0)
@@ -72,6 +72,9 @@ if __name__ == '__main__':
             rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
             print('Error:', e)
             sys.exit()
+    else:
+        rospy.logerr('[event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
+        sys.exit()
 
     e_camera_emulator = EventCameraEmulator()
 
