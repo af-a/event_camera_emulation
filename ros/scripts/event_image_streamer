@@ -30,6 +30,8 @@ if __name__ == '__main__':
     source_type = rospy.get_param('~source_type', 'camera_device')
     publish_output = rospy.get_param('~publish_output', True)
     display_output = rospy.get_param('~display_output', False)
+    theta = rospy.get_param('~theta', 60)
+    record_off_events = rospy.get_param('~record_off_events', True)
 
     original_image_publisher_ = rospy.Publisher('original_image', Image, queue_size=10)
     event_image_publisher_ = rospy.Publisher('event_image', Image, queue_size=10)
@@ -85,7 +87,7 @@ if __name__ == '__main__':
                     rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
                     print('Error:', e)
                     continue
-            event_image = e_camera_emulator.get_events_image(current_image, previous_image, 15)
+            event_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events)
 
             if publish_output:
                 original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))

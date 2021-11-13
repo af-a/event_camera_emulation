@@ -6,6 +6,8 @@
     <arg name="image_topic" default="/camera/color/image_raw"/>
     <arg name="publish_output" default="True"/>
     <arg name="display_output" default="False"/>
+    <arg name="theta" default="60"/>
+    <arg name="record_off_events" default="True"/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
         output="screen" respawn="false">
@@ -14,6 +16,8 @@
         <param name="image_topic" type="str" value="$(arg image_topic)"/>
         <param name="publish_output" type="bool" value="$(arg publish_output)"/>
         <param name="display_output" type="bool" value="$(arg display_output)"/>
+        <param name="theta" type="int" value="$(arg theta)"/>
+        <param name="record_off_events" type="bool" value="$(arg record_off_events)"/>
     </node>
 
 </launch>
