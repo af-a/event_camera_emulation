@@ -8,6 +8,7 @@
     <arg name="display_output" default="False"/>
     <arg name="theta" default="60"/>
     <arg name="record_off_events" default="True"/>
+    <arg name="compute_from_rgb" default="True"/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
         output="screen" respawn="false">
@@ -18,6 +19,7 @@
         <param name="display_output" type="bool" value="$(arg display_output)"/>
         <param name="theta" type="int" value="$(arg theta)"/>
         <param name="record_off_events" type="bool" value="$(arg record_off_events)"/>
+        <param name="compute_from_rgb" type="bool" value="$(arg compute_from_rgb)"/>
     </node>
 
 </launch>
