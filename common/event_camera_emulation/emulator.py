@@ -57,10 +57,10 @@ class EventCameraEmulator(object):
         ## Otherwise, negative numbers wrap around to 255...
         diff_frame = frame.astype(int) - previous_frame.astype(int)
 
-        event_frame = np.full((frame.shape[0], frame.shape[1], 3), 255., dtype='uint8')
-        event_frame[diff_frame > theta] = [255., 0., 0.]
+        event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
+        event_frame[diff_frame > theta] = 1
         if record_off_events:
-            event_frame[diff_frame < -theta] = [0., 0., 255.]
+            event_frame[diff_frame < -theta] = 2
 
         return event_frame
 
@@ -156,12 +156,11 @@ class EventCameraEmulator(object):
         # Note: If RGB are all True, the sum for a pixel would be 3:
         off_indices = np.sum(bools, 2) == 3.
 
-        event_frame = np.full((frame.shape[0], frame.shape[1], 3), 255., dtype='uint8')
-
-        event_frame[on_indices] = [255., 0., 0.]
+        event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
+        event_frame[on_indices] = 1
         if record_off_events:
-            event_frame[off_indices] = [0., 0., 255.]
-            # event_frame[off_indices] = [255., 0., 0.]    ## temp change to consider both ON and OFF events
+            # event_frame[off_indices] = 2
+            event_frame[off_indices] = 1    ## temp change to consider both ON and OFF events
 
         return event_frame
 
@@ -202,10 +201,18 @@ class EventCameraEmulator(object):
         # Note: If RGB are all True, the sum for a pixel would be 3:
         off_indices = np.sum(bools, 2) >= 1.
 
-        event_frame = np.full((frame.shape[0], frame.shape[1], 3), 255., dtype='uint8')
-
-        event_frame[on_indices] = [255., 0., 0.]
+        event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
+        event_frame[on_indices] = 1
         if record_off_events:
-            event_frame[off_indices] = [0., 0., 255.]
+            # event_frame[off_indices] = 2
+            event_frame[off_indices] = 1    ## temp change to consider both ON and OFF events
 
         return event_frame
+
+    def get_visual_events_image(self, event_frame):
+        visual_events_image = np.full((event_frame.shape[0], event_frame.shape[1], 3), 255., dtype='uint8')
+
+        visual_events_image[event_frame == 1] = [255., 0., 0.]
+        visual_events_image[event_frame == 2] = [0., 0., 255.]
+
+        return visual_events_image

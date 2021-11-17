@@ -98,18 +98,20 @@ if __name__ == '__main__':
                 ## Baseline method: compute events from grayscale images:
                 event_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events)
 
+            visual_events_image = e_camera_emulator.get_visual_events_image(event_image)
+
             if publish_output:
                 original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
-                event_image_msg = bridge.cv2_to_imgmsg(event_image, encoding="bgr8")
+                event_image_msg = bridge.cv2_to_imgmsg(visual_events_image, encoding="bgr8")
                 event_image_msg.header.stamp = rospy.Time.now()
                 event_image_publisher_.publish(event_image_msg)
             if display_output:
                 cv2.imshow('Original Camera stream', current_image) 
-                cv2.imshow('Simulated Event Camera stream', event_image)
+                cv2.imshow('Simulated Event Camera stream', visual_events_image)
                 cv2.waitKey(1)
 
             previous_image = current_image
-            rate.sleep()
+            rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
     except (KeyboardInterrupt, rospy.ROSInterruptException):
         rospy.loginfo('[event_image_streamer] Finished streaming, exiting program...')
         if source_type == 'camera_device':
