@@ -34,8 +34,8 @@ if __name__ == '__main__':
     try:
         while True: 
             _, current_image = camera_device_.read()
-            event_image = e_camera_emulator.get_events_image(current_image, previous_image, 20, False)
-            # event_image = e_camera_emulator.get_events_image(current_image, previous_image, 20, True)
+            event_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, 60, True)
+
             previous_image = current_image
 
             cv2.imshow('Original Camera stream', current_image) 
