@@ -15,7 +15,7 @@ camera_device_ = None
 bridge = CvBridge()
 
 image_publisher_ = None
-event_image_publisher_ = None
+visual_events_image_publisher_ = None
 current_image_msg_ = None
 
 def image_callback(msg):
@@ -35,7 +35,8 @@ if __name__ == '__main__':
     compute_from_rgb = rospy.get_param('~compute_from_rgb', True)
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
-    event_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
+    events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
+    visual_events_image_publisher_ = rospy.Publisher('visual_events_images', Image, queue_size=10)
 
     if source_type == 'camera_device':
         camera_device_id = rospy.get_param('~camera_device_id', 0)
@@ -93,18 +94,23 @@ if __name__ == '__main__':
                     continue
 
             if compute_from_rgb:
-                event_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events)
+                events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events)
             else:
                 ## Baseline method: compute events from grayscale images:
-                event_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events)
+                events_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events)
 
-            visual_events_image = e_camera_emulator.get_visual_events_image(event_image)
+            visual_events_image = e_camera_emulator.get_visual_events_image(events_image)
 
             if publish_output:
+                events_image_msg = bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
+                events_image_msg.header.stamp = rospy.Time.now()
+                events_image_publisher_.publish(events_image_msg)
+
+                visual_events_image_msg = bridge.cv2_to_imgmsg(visual_events_image, encoding="bgr8")
+                visual_events_image_msg.header.stamp = rospy.Time.now()
+                visual_events_image_publisher_.publish(visual_events_image_msg)
+
                 original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
-                event_image_msg = bridge.cv2_to_imgmsg(visual_events_image, encoding="bgr8")
-                event_image_msg.header.stamp = rospy.Time.now()
-                event_image_publisher_.publish(event_image_msg)
             if display_output:
                 cv2.imshow('Original Camera stream', current_image) 
                 cv2.imshow('Simulated Event Camera stream', visual_events_image)
