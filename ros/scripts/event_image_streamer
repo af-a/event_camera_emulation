@@ -117,9 +117,13 @@ if __name__ == '__main__':
                 cv2.waitKey(1)
 
             previous_image = current_image
-            rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
+            try:
+                rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
+            except rospy.ROSTimeMovedBackwardsException as e:
+                rospy.logwarn('[event_image_streamer] Caught ROSTimeMovedBackwardsException when executing rate.sleep(). '
+                               'This can happen when incoming messages had stopped, and have just resumed publishing.')
     except (KeyboardInterrupt, rospy.ROSInterruptException):
-        rospy.loginfo('[event_image_streamer] Finished streaming, exiting program...')
+        rospy.loginfo('[event_image_streamer] Stopping node')
         if source_type == 'camera_device':
             camera_device_.release() 
         if display_output:
