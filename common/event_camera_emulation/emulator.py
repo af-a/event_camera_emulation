@@ -5,7 +5,7 @@ from skimage.metrics import structural_similarity
 
 class EventCameraEmulator(object):
 
-    def get_events_image(self, image_1, image_2, theta=20, record_off_events=True):
+    def get_events_image(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False):
         '''
         Returns an emulated event image from two RGB images.
         This may be extended to be usable with different event emulation strategies.
@@ -27,11 +27,11 @@ class EventCameraEmulator(object):
         image_1_gray = cv2.cvtColor(image_1, cv2.COLOR_BGR2GRAY)
         image_2_gray = cv2.cvtColor(image_2, cv2.COLOR_BGR2GRAY)
 
-        events_image = self.compute_thresholded_diff_events_image(image_1_gray, image_2_gray, theta, record_off_events)
+        events_image = self.compute_thresholded_diff_events_image(image_1_gray, image_2_gray, theta, record_off_events, register_off_events_as_on)
 
         return events_image
 
-    def compute_thresholded_diff_events_image(self, frame, previous_frame, theta=20, record_off_events=True):
+    def compute_thresholded_diff_events_image(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two GRAY frames from each other,
@@ -60,7 +60,10 @@ class EventCameraEmulator(object):
         event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
         event_frame[diff_frame > theta] = 1
         if record_off_events:
-            event_frame[diff_frame < -theta] = 2
+            if register_off_events_as_on:
+                event_frame[diff_frame < -theta] = 1
+            else:
+                event_frame[diff_frame < -theta] = 2
 
         return event_frame
 
@@ -92,7 +95,7 @@ class EventCameraEmulator(object):
         
         return diff_frame
 
-    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True):
+    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False):
         '''
         Returns an emulated event image from two RGB images.
         This may be extended to be usable with different event emulation strategies.
@@ -114,12 +117,12 @@ class EventCameraEmulator(object):
         image_1_rgb = cv2.cvtColor(image_1, cv2.COLOR_BGR2RGB)
         image_2_rgb = cv2.cvtColor(image_2, cv2.COLOR_BGR2RGB)
 
-        events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events)
-        # events_image = self.compute_thresholded_diff_events_image_rgb_ONE(image_1_rgb, image_2_rgb, theta, record_off_events)
+        events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
+        # events_image = self.compute_thresholded_diff_events_image_rgb_ONE(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
 
         return events_image
 
-    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True):
+    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two RGB frames from each other,
@@ -159,12 +162,14 @@ class EventCameraEmulator(object):
         event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
         event_frame[on_indices] = 1
         if record_off_events:
-            # event_frame[off_indices] = 2
-            event_frame[off_indices] = 1    ## temp change to consider both ON and OFF events
+            if register_off_events_as_on:
+                event_frame[off_indices] = 1
+            else:
+                event_frame[off_indices] = 2
 
         return event_frame
 
-    def compute_thresholded_diff_events_image_rgb_ONE(self, frame, previous_frame, theta=20, record_off_events=True):
+    def compute_thresholded_diff_events_image_rgb_ONE(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two RGB frames from each other,
@@ -204,8 +209,10 @@ class EventCameraEmulator(object):
         event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
         event_frame[on_indices] = 1
         if record_off_events:
-            # event_frame[off_indices] = 2
-            event_frame[off_indices] = 1    ## temp change to consider both ON and OFF events
+            if register_off_events_as_on:
+                event_frame[off_indices] = 1    ## temp change to consider both ON and OFF events
+            else:
+                event_frame[off_indices] = 2
 
         return event_frame
 
