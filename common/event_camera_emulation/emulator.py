@@ -5,7 +5,7 @@ from skimage.metrics import structural_similarity
 
 class EventCameraEmulator(object):
 
-    def get_events_image(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False):
+    def get_events_image(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
         '''
         Returns an emulated event image from two RGB images.
         This may be extended to be usable with different event emulation strategies.
@@ -18,6 +18,8 @@ class EventCameraEmulator(object):
             Previous RGB image array.
         theta: int
             Threshold value. Smaller values lead to more noisy results.
+        use_log_diff: bool
+            Enables computing differences in log intensity values (instead of raw intensity values)
         
         Returns
         -------
@@ -27,11 +29,11 @@ class EventCameraEmulator(object):
         image_1_gray = cv2.cvtColor(image_1, cv2.COLOR_BGR2GRAY)
         image_2_gray = cv2.cvtColor(image_2, cv2.COLOR_BGR2GRAY)
 
-        events_image = self.compute_thresholded_diff_events_image(image_1_gray, image_2_gray, theta, record_off_events, register_off_events_as_on)
+        events_image = self.compute_thresholded_diff_events_image(image_1_gray, image_2_gray, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff)
 
         return events_image
 
-    def compute_thresholded_diff_events_image(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
+    def compute_thresholded_diff_events_image(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two GRAY frames from each other,
@@ -47,6 +49,8 @@ class EventCameraEmulator(object):
             Previous GRAY image array.
         theta: int
             Threshold value. Smaller values lead to more noisy results.
+        use_log_diff: bool
+            Enables computing differences in log intensity values (instead of raw intensity values)
         
         Returns
         -------
@@ -55,7 +59,12 @@ class EventCameraEmulator(object):
         '''
         ## Frames must be cast to signed ints before computing diffs
         ## Otherwise, negative numbers wrap around to 255...
-        diff_frame = frame.astype(int) - previous_frame.astype(int)
+        if not use_log_diff:
+            diff_frame = frame.astype(int) - previous_frame.astype(int)
+        else:
+            ## Adding a constant factor avoids the issue of very low intensity values (near black)
+            ## leading to very high differences in log values (and thus to noisy events near dark objects):
+            diff_frame = np.log(frame.astype(int) + 10) - np.log(previous_frame.astype(int) + 10)
 
         event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
         event_frame[diff_frame > theta] = 1
@@ -95,7 +104,7 @@ class EventCameraEmulator(object):
         
         return diff_frame
 
-    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False):
+    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
         '''
         Returns an emulated event image from two RGB images.
         This may be extended to be usable with different event emulation strategies.
@@ -108,6 +117,8 @@ class EventCameraEmulator(object):
             Previous RGB image array.
         theta: int
             Threshold value. Smaller values lead to more noisy results.
+        use_log_diff: bool
+            Enables computing differences in log intensity values (instead of raw intensity values)
         
         Returns
         -------
@@ -117,15 +128,16 @@ class EventCameraEmulator(object):
         image_1_rgb = cv2.cvtColor(image_1, cv2.COLOR_BGR2RGB)
         image_2_rgb = cv2.cvtColor(image_2, cv2.COLOR_BGR2RGB)
 
-        events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
+        events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff)
         # events_image = self.compute_thresholded_diff_events_image_rgb_ONE(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
+
 
         return events_image
 
-    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
+    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
-         - subtracting two RGB frames from each other,
+         - subtracting two RGB frames from each other (optionally using log intensity values),
          - identifying ON and OFF events as pixels with values greater than theta and values
            less than -theta, respectively
          - emulating an event image by marking ON and OFF events with red and blue in a white frame
@@ -138,6 +150,8 @@ class EventCameraEmulator(object):
             Previous RGB image array.
         theta: int
             Threshold value. Smaller values lead to more noisy results.
+        use_log_diff: bool
+            Enables computing differences in log intensity values (instead of raw intensity values)
         
         Returns
         -------
@@ -146,7 +160,13 @@ class EventCameraEmulator(object):
         '''
         ## Frames must be cast to signed ints before computing diffs
         ## Otherwise, negative numbers wrap around to 255...
-        diff_frame = frame.astype(int) - previous_frame.astype(int)
+        if not use_log_diff:
+            diff_frame = frame.astype(int) - previous_frame.astype(int)
+        else:
+            ## Adding a constant factor avoids the issue of very low intensity values (near black)
+            ## leading to very high differences in log values (and thus to noisy events near dark objects):
+            diff_frame = np.log(frame.astype(int) + 10) - np.log(previous_frame.astype(int) + 10)
+
         theta_frame = np.full((diff_frame.shape[0], diff_frame.shape[1], 3), theta, dtype='uint8')
 
         ## Find indices of pixels for which R,G,B are all > theta:

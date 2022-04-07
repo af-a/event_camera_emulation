@@ -10,6 +10,7 @@
     <arg name="record_off_events" default="True"/>
     <arg name="register_off_events_as_on" default="False"/>
     <arg name="compute_from_rgb" default="True"/>
+    <arg name="use_log_diff" default="False"/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
         output="screen" respawn="false">
@@ -18,10 +19,11 @@
         <param name="image_topic" type="str" value="$(arg image_topic)"/>
         <param name="publish_output" type="bool" value="$(arg publish_output)"/>
         <param name="display_output" type="bool" value="$(arg display_output)"/>
-        <param name="theta" type="int" value="$(arg theta)"/>
+        <param name="theta" type="double" value="$(arg theta)"/>
         <param name="record_off_events" type="bool" value="$(arg record_off_events)"/>
         <param name="register_off_events_as_on" type="bool" value="$(arg register_off_events_as_on)"/>
         <param name="compute_from_rgb" type="bool" value="$(arg compute_from_rgb)"/>
+        <param name="use_log_diff" type="bool" value="$(arg use_log_diff)"/>
     </node>
 
 </launch>

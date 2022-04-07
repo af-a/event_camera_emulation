@@ -33,6 +33,7 @@ if __name__ == '__main__':
     record_off_events = rospy.get_param('~record_off_events', True)
     register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
     compute_from_rgb = rospy.get_param('~compute_from_rgb', True)
+    use_log_diff = rospy.get_param('~use_log_diff', False)
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
@@ -94,10 +95,11 @@ if __name__ == '__main__':
                     continue
 
             if compute_from_rgb:
-                events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on)
+                # events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on)
+                events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff)
             else:
                 ## Baseline method: compute events from grayscale images:
-                events_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events, register_off_events_as_on)
+                events_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff)
 
             visual_events_image = e_camera_emulator.get_visual_events_image(events_image)
 
