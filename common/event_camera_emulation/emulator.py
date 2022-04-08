@@ -104,7 +104,7 @@ class EventCameraEmulator(object):
         
         return diff_frame
 
-    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
+    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False, method=''):
         '''
         Returns an emulated event image from two RGB images.
         This may be extended to be usable with different event emulation strategies.
@@ -128,7 +128,13 @@ class EventCameraEmulator(object):
         image_1_rgb = cv2.cvtColor(image_1, cv2.COLOR_BGR2RGB)
         image_2_rgb = cv2.cvtColor(image_2, cv2.COLOR_BGR2RGB)
 
-        events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff)
+        if method != '':
+            if method == 'salvatore':
+                events_image = self.compute_thresholded_diff_events_salvatore_method(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
+            else:
+                raise ValueError('method must be one of [\'salvatore\']')
+        else:
+            events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff)
         # events_image = self.compute_thresholded_diff_events_image_rgb_ONE(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
 
 
@@ -186,6 +192,49 @@ class EventCameraEmulator(object):
                 event_frame[off_indices] = 1
             else:
                 event_frame[off_indices] = 2
+
+        return event_frame
+
+    def compute_thresholded_diff_events_salvatore_method(self, frame, previous_frame, theta=0.25, record_off_events=True, register_off_events_as_on=False):
+        '''
+        Performs a procedure to compute a thresholded difference between two frames following the method described in the paper:
+        "A Neuro-inspired Approach to Intelligent Collision Avoidance and Navigation (2020)".
+
+        Parameters
+        ----------
+        frame: numpy.ndarray
+            Current RGB image array.
+        previous_frame: numpy.ndarray
+            Previous RGB image array.
+        theta: int
+            Threshold value. Smaller values lead to more noisy results.
+
+        Returns
+        -------
+        event_frame: numpy.ndarray
+            Estimated event image array.
+        '''
+        log_frame = frame.astype('float')
+        log_frame[:, :, 0] *= 0.299
+        log_frame[:, :, 1] *= 0.587
+        log_frame[:, :, 2] *= 0.114
+        log_frame = np.log(np.sum(log_frame, axis=2))
+
+        log_previous_frame = previous_frame.astype('float')
+        log_previous_frame[:, :, 0] *= 0.299
+        log_previous_frame[:, :, 1] *= 0.587
+        log_previous_frame[:, :, 2] *= 0.114
+        log_previous_frame = np.log(np.sum(log_previous_frame, axis=2))
+
+        diff_frame = log_frame - log_previous_frame
+
+        event_frame = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
+        event_frame[diff_frame > theta] = 1
+        if record_off_events:
+            if register_off_events_as_on:
+                event_frame[diff_frame < -theta] = 1
+            else:
+                event_frame[diff_frame < -theta] = 2
 
         return event_frame
 

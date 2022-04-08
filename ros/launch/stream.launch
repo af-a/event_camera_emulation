@@ -11,6 +11,7 @@
     <arg name="register_off_events_as_on" default="False"/>
     <arg name="compute_from_rgb" default="True"/>
     <arg name="use_log_diff" default="False"/>
+    <arg name="method" default=""/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
         output="screen" respawn="false">
@@ -24,6 +25,7 @@
         <param name="register_off_events_as_on" type="bool" value="$(arg register_off_events_as_on)"/>
         <param name="compute_from_rgb" type="bool" value="$(arg compute_from_rgb)"/>
         <param name="use_log_diff" type="bool" value="$(arg use_log_diff)"/>
+        <param name="method" type="str" value="$(arg method)"/>
     </node>
 
 </launch>
