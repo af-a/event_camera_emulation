@@ -147,7 +147,9 @@ if __name__ == '__main__':
 
         if camera_device_.isOpened():
             rospy.loginfo('[event_image_streamer] Successfully opened camera device')
-            # _, previous_image = camera_device_.read()
+            _, test_image = camera_device_.read()
+            height = test_image.shape[0]
+            width = test_image.shape[1]
         else:
             rospy.loginfo('[event_image_streamer] Could not open camera device!')
             sys.exit()
@@ -164,13 +166,15 @@ if __name__ == '__main__':
             rospy.loginfo('[event_image_streamer] Terminating...')
             sys.exit()
 
-        # rospy.loginfo('[event_image_streamer] Received first image message')
-        # try:
-        #     previous_image = bridge.imgmsg_to_cv2(current_image_msg_, "bgr8")
-        # except CvBridgeError as e:
-        #     rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
-        #     print('Error:', e)
-        #     sys.exit()
+        rospy.loginfo('[event_image_streamer] Received first image message')
+        try:
+            test_image = bridge.imgmsg_to_cv2(current_image_msg_, "bgr8")
+            height = test_image.shape[0]
+            width = test_image.shape[1]
+        except CvBridgeError as e:
+            rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
+            print('Error:', e)
+            sys.exit()
     else:
         rospy.logerr('[event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
         sys.exit()
