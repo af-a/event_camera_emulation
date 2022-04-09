@@ -29,6 +29,7 @@ if __name__ == '__main__':
     source_type = rospy.get_param('~source_type', 'camera_device')
     publish_output = rospy.get_param('~publish_output', True)
     display_output = rospy.get_param('~display_output', False)
+    display_combined_images = rospy.get_param('~display_combined_images', True)
     theta = rospy.get_param('~theta', 60)
     record_off_events = rospy.get_param('~record_off_events', True)
     register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
@@ -115,8 +116,13 @@ if __name__ == '__main__':
 
                 original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
             if display_output:
-                cv2.imshow('Original Camera stream', current_image) 
-                cv2.imshow('Simulated Event Camera stream', visual_events_image)
+                if not display_combined_images:
+                    cv2.imshow('Original Camera stream', current_image)
+                    cv2.imshow('Simulated Event Camera stream', visual_events_image)
+                else:
+                    current_image_copy = current_image.copy()
+                    current_image_copy[events_image == 1] = [255., 0., 0.]
+                    cv2.imshow('Simulated Event Camera stream', current_image_copy)
                 cv2.waitKey(1)
 
             previous_image = current_image
