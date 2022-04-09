@@ -25,13 +25,8 @@ image_publisher_ = None
 visual_events_image_publisher_ = None
 current_image_msg_ = None
 
-## pyDVS Initializations:
+## pyDVS Parameters:
 ## -------------------------------------------------------------------------
-width = 640
-height = 480
-
-shape = (height, width)
-
 UP_POLARITY     = "UP"
 DOWN_POLARITY   = "DOWN"
 MERGED_POLARITY = "MERGED"
@@ -43,19 +38,20 @@ POLARITY_DICT   = {UP_POLARITY: np.uint8(0),
                    2: MERGED_POLARITY}
 polarity = POLARITY_DICT[ MERGED_POLARITY ]
 history_weight = 1.0
-threshold = 20
-curr = np.zeros(shape, dtype=np.int16) 
-img = np.zeros(shape, dtype=np.int16) 
-ref = 128 * np.ones(shape, dtype=np.int16)
-
 inh_width = 2
 is_inh_on = False
-inh_coords = gs.generate_inh_coords(width, height, inh_width)
 
-fps = 30
-max_time_ms = int(1000./fps)
-
+width = None
+height = None
+shape = None
+curr = None
+img = None
+ref = None
+fps = None
+max_time_ms = None
+inh_coords = None
 spikes_queue = None
+threshold = None
 
 def image_callback(msg):
     global current_image_msg_
@@ -74,7 +70,7 @@ def get_visual_events_image_pydvs(spikes, polarity_key='MERGED'):
 ## -------------------------------------------------------------------------
 
 def processing_thread(img_queue, spikes_queue, running, max_time_ms):
-    global shape, height, width
+    global shape, height, width, inh_coords, inh_width, ref, threshold
 
     spikes   = np.zeros(shape, dtype=np.int16) 
     diff     = np.zeros(shape, dtype=np.int16) 
@@ -124,7 +120,7 @@ if __name__ == '__main__':
     publish_output = rospy.get_param('~publish_output', True)
     display_output = rospy.get_param('~display_output', False)
     display_combined_images = rospy.get_param('~display_combined_images', True)
-    theta = rospy.get_param('~theta', 60)
+    theta = rospy.get_param('~theta', 12)
     record_off_events = rospy.get_param('~record_off_events', True)
     register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
     compute_from_rgb = rospy.get_param('~compute_from_rgb', True)
@@ -179,17 +175,28 @@ if __name__ == '__main__':
         rospy.logerr('[event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
         sys.exit()
 
+    ## pyDVS Initializations:
+    ## -------------------------------------------------------------------------
+    shape = (height, width)
+    curr = np.zeros(shape, dtype=np.int16)
+    img = np.zeros(shape, dtype=np.int16)
+    ref = 128 * np.ones(shape, dtype=np.int16)
+
+    threshold = theta
+    inh_coords = gs.generate_inh_coords(width, height, inh_width)
+
+    fps = 30
+    max_time_ms = int(1000./fps)
+
     ## pyDVS Thread Starting:
     ## -------------------------------------------------------------------------
     running = Value('i', 1)
-
     spikes_queue = Queue()
-
     img_queue = Queue()
-    spike_gen_proc = Process(target=processing_thread, 
-                           args=(img_queue, spikes_queue, running, max_time_ms))
-    spike_gen_proc.start()
 
+    spike_gen_proc = Process(target=processing_thread, 
+                             args=(img_queue, spikes_queue, running, max_time_ms))
+    spike_gen_proc.start()
 
     rospy.loginfo('[event_image_streamer] Streaming emulated event images')
     try:
@@ -233,9 +240,8 @@ if __name__ == '__main__':
                     cv2.imshow('Original Camera stream', current_image) 
                     cv2.imshow('Simulated Event Camera stream', visual_events_image)
                 else:
-                    img_rgb = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_GRAY2BGR)
-                    img_rgb[spikes_copy == 1] = [255., 0., 0.]
-                    cv2.imshow('Simulated Event Camera stream', img_rgb)
+                    current_image[events_image == 1] = [255., 0., 0.]
+                    cv2.imshow('Simulated Event Camera stream', current_image)
                 cv2.waitKey(1)
 
             try:
