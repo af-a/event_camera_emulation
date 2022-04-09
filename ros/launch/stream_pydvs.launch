@@ -8,8 +8,8 @@
     <arg name="display_output" default="False"/>
     <arg name="display_combined_images" default="True"/>
     <arg name="theta" default="12"/>
-    <!-- <arg name="record_off_events" default="True"/> -->
-    <!-- <arg name="register_off_events_as_on" default="False"/> -->
+    <arg name="record_off_events" default="True"/>
+    <arg name="register_off_events_as_on" default="False"/>
 
     <node pkg="event_camera_emulation" type="pydvs_event_image_streamer" name="pydvs_event_image_streamer"
         output="screen" respawn="false">
@@ -20,8 +20,8 @@
         <param name="display_output" type="bool" value="$(arg display_output)"/>
         <param name="display_combined_images" type="bool" value="$(arg display_combined_images)"/>
         <param name="theta" type="double" value="$(arg theta)"/>
-        <!-- <param name="record_off_events" type="bool" value="$(arg record_off_events)"/> -->
-        <!-- <param name="register_off_events_as_on" type="bool" value="$(arg register_off_events_as_on)"/> -->
+        <param name="record_off_events" type="bool" value="$(arg record_off_events)"/>
+        <param name="register_off_events_as_on" type="bool" value="$(arg register_off_events_as_on)"/>
     </node>
 
 </launch>
