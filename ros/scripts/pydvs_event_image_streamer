@@ -44,11 +44,8 @@ POLARITY_DICT   = {UP_POLARITY: np.uint8(0),
                    1: DOWN_POLARITY,
                    2: MERGED_POLARITY}
 polarity = POLARITY_DICT[ MERGED_POLARITY ]
-# output_type = OUTPUT_TIME
 history_weight = 1.0
-threshold = 12 # ~ 0.05*255
 threshold = 20
-# max_threshold = 180 # 12*15 ~ 0.7*255
 curr = np.zeros(shape, dtype=np.int16) 
 img = np.zeros(shape, dtype=np.int16) 
 ref = 128 * np.ones(shape, dtype=np.int16)
@@ -57,7 +54,6 @@ inh_width = 2
 is_inh_on = False
 inh_coords = gs.generate_inh_coords(width, height, inh_width)
 
-# fps = video_dev.get(cv2.CAP_PROP_FPS)
 fps = 30
 max_time_ms = int(1000./fps)
 
@@ -72,42 +68,23 @@ def get_visual_events_image_pydvs(spikes, polarity_key='MERGED'):
 
     if polarity_key == 'MERGED':
         visual_events_image[spikes == 1] = [255., 0., 0.]
-#     visual_events_image[spikes == 2] = [0., 0., 255.]
 
     return visual_events_image
 
 
 ## pyDVS Thread Functions:
 ## -------------------------------------------------------------------------
-# def emitting_thread(spike_queue, running):
-#     while True:
-#         spikes = spike_queue.get()
-
-#         if spikes is None or running.value == 0:
-#           running.value = 0
-#           break
-      
-#     running.value = 0
 
 def processing_thread(img_queue, spike_queue, running, max_time_ms, spikes_copy_queue):
     global shape, height, width
-    # cv2.namedWindow('spikes', cv2.WINDOW_AUTOSIZE)
-    # cv2.startWindowThread()
 
     spikes   = np.zeros(shape, dtype=np.int16) 
     diff     = np.zeros(shape, dtype=np.int16) 
     abs_diff = np.zeros(shape, dtype=np.int16) 
 
-    # # just to see things in a window
-    # spk_img  = np.zeros((height, width, 3), np.uint8)
-
-    num_bits = 6   # how many bits are used to represent exceeded thresholds
-    num_active_bits = 2 # how many of bits are active
+    num_bits = 6
+    num_active_bits = 2
     log2_table = gs.generate_log2_table(num_active_bits, num_bits)[num_active_bits - 1]
-    # spike_lists = None
-    # pos_spks = None
-    # neg_spks = None
-    # max_diff = 0
 
     while True:
         img = img_queue.get()
@@ -116,15 +93,12 @@ def processing_thread(img_queue, spike_queue, running, max_time_ms, spikes_copy_
             running.value = 0
             break
 
-        # do the difference
         diff[:], abs_diff[:], spikes[:] = gs.thresholded_difference(img, ref, threshold)
 
-        # inhibition ( optional ) 
         if is_inh_on:
             spikes[:] = gs.local_inhibition(spikes, abs_diff, inh_coords, 
                                        width, height, inh_width)
 
-        # update the reference
         ref[:] = gs.update_reference_time_binary_thresh(abs_diff, spikes, ref,
                                                      threshold, max_time_ms,
                                                      num_active_bits,
@@ -133,33 +107,9 @@ def processing_thread(img_queue, spike_queue, running, max_time_ms, spikes_copy_
 
         spikes_copy_queue.put(spikes)
 
-        # # convert into a set of packages to send out
-        # neg_spks, pos_spks, max_diff = gs.split_spikes(spikes, abs_diff, polarity)
+        # with open('/home/ahmed/tmp/pydvs_spikes.pkl', 'wb') as f:
+        #     pickle.dump(spikes, f)
 
-        # # this takes too long, could be parallelized at expense of memory
-        # spike_lists = gs.make_spike_lists_time_bin_thr(pos_spks, neg_spks,
-        #                                             max_diff,
-        #                                             up_down_shift, data_shift, data_mask,
-        #                                             max_time_ms,
-        #                                             threshold, 
-        #                                             max_threshold,
-        #                                             num_bits,
-        #                                             log2_table)
-
-        # spike_queue.put(spike_lists)
-
-        ## +++ Ahmed: Analyzing data:
-        with open('/home/ahmed/tmp/pydvs_spikes.pkl', 'wb') as f:
-            pickle.dump(spikes, f)
-
-        # spk_img[:] = gs.render_frame(spikes, img, cam_res, cam_res, polarity)
-        # cv2.imshow ('spikes', spk_img.astype(np.uint8))  
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     running.value = 0
-        #     break
-
-    # cv2.destroyAllWindows()  
-    # cv2.waitKey(1)
     running.value = 0
 
 def preprocess_img_for_pydvs(img):
@@ -227,23 +177,16 @@ if __name__ == '__main__':
         rospy.logerr('[event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
         sys.exit()
 
-    # e_camera_emulator = EventCameraEmulator()
-
     ## pyDVS Thread Starting:
     ## -------------------------------------------------------------------------
     running = Value('i', 1)
 
     spikes_copy_queue = Queue()
-
     spike_queue = Queue()
-    # spike_emitting_proc = Process(target=emitting_thread, 
-    #                             args=(spike_queue, running))
-    # spike_emitting_proc.start()
 
     img_queue = Queue()
     spike_gen_proc = Process(target=processing_thread, 
                            args=(img_queue, spike_queue, running, max_time_ms, spikes_copy_queue))
-                           # args=(img_queue, spike_queue, running, max_time_ms))
     spike_gen_proc.start()
 
 
@@ -267,9 +210,8 @@ if __name__ == '__main__':
             img = preprocess_img_for_pydvs(img)
             img_queue.put(img)
 
-            ## +++ Ahmed: Analyzing data:
-            with open('/home/ahmed/tmp/pydvs_img.pkl', 'wb') as f:
-                pickle.dump(img, f)
+            # with open('/home/ahmed/tmp/pydvs_img.pkl', 'wb') as f:
+            #     pickle.dump(img, f)
 
             spikes_copy = spikes_copy_queue.get()
             if spikes_copy is None:
@@ -312,20 +254,5 @@ if __name__ == '__main__':
 
     img_queue.put(None)
     spike_gen_proc.join()
-    print("generation thread stopped")
-
     spike_queue.put(None)
-
-
-## --------------------------------------------------------------------------------------
-            # cv2.imwrite('/home/ahmed/tmp/ece_sample_rgb_image_1.png', previous_image)
-            # cv2.imwrite('/home/ahmed/tmp/ece_sample_rgb_image_2.png', current_image)
-
-            # if compute_from_rgb:
-            #     events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff, method=method)
-            # else:
-            #     ## Baseline method: compute events from grayscale images:
-            #     events_image = e_camera_emulator.get_events_image(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff)
-
-            # visual_events_image = e_camera_emulator.get_visual_events_image(events_image)
-
+    rospy.loginfo('[event_image_streamer] Stopping spike generation thread')
