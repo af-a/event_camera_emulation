@@ -6,8 +6,6 @@ import argparse
 import rospy
 import cv2
 
-from event_camera_emulation.emulator import EventCameraEmulator
-
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
@@ -57,7 +55,7 @@ inh_coords = gs.generate_inh_coords(width, height, inh_width)
 fps = 30
 max_time_ms = int(1000./fps)
 
-spikes_copy_queue = None
+spikes_queue = None
 
 def image_callback(msg):
     global current_image_msg_
@@ -75,7 +73,7 @@ def get_visual_events_image_pydvs(spikes, polarity_key='MERGED'):
 ## pyDVS Thread Functions:
 ## -------------------------------------------------------------------------
 
-def processing_thread(img_queue, spike_queue, running, max_time_ms, spikes_copy_queue):
+def processing_thread(img_queue, spikes_queue, running, max_time_ms):
     global shape, height, width
 
     spikes   = np.zeros(shape, dtype=np.int16) 
@@ -105,7 +103,7 @@ def processing_thread(img_queue, spike_queue, running, max_time_ms, spikes_copy_
                                                      history_weight,
                                                      log2_table)
 
-        spikes_copy_queue.put(spikes)
+        spikes_queue.put(spikes)
 
         # with open('/home/ahmed/tmp/pydvs_spikes.pkl', 'wb') as f:
         #     pickle.dump(spikes, f)
@@ -181,12 +179,11 @@ if __name__ == '__main__':
     ## -------------------------------------------------------------------------
     running = Value('i', 1)
 
-    spikes_copy_queue = Queue()
-    spike_queue = Queue()
+    spikes_queue = Queue()
 
     img_queue = Queue()
     spike_gen_proc = Process(target=processing_thread, 
-                           args=(img_queue, spike_queue, running, max_time_ms, spikes_copy_queue))
+                           args=(img_queue, spikes_queue, running, max_time_ms))
     spike_gen_proc.start()
 
 
@@ -213,10 +210,7 @@ if __name__ == '__main__':
             # with open('/home/ahmed/tmp/pydvs_img.pkl', 'wb') as f:
             #     pickle.dump(img, f)
 
-            spikes_copy = spikes_copy_queue.get()
-            if spikes_copy is None:
-                continue
-            events_image = spikes_copy
+            events_image = spikes_queue.get()
             visual_events_image = get_visual_events_image_pydvs(events_image)
 
             if publish_output:
@@ -254,5 +248,5 @@ if __name__ == '__main__':
 
     img_queue.put(None)
     spike_gen_proc.join()
-    spike_queue.put(None)
+    spikes_queue.put(None)
     rospy.loginfo('[event_image_streamer] Stopping spike generation thread')
