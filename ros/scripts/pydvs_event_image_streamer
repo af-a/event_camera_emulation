@@ -57,11 +57,11 @@ def image_callback(msg):
     global current_image_msg_
     current_image_msg_ = msg
 
-def get_visual_events_image_pydvs(spikes, polarity_key='MERGED'):
+def get_visual_events_image_pydvs(spikes):
     visual_events_image = np.full((spikes.shape[0], spikes.shape[1], 3), 255., dtype='uint8')
 
-    if polarity_key == 'MERGED':
-        visual_events_image[spikes == 1] = [255., 0., 0.]
+    visual_events_image[spikes == 1] = [255., 0., 0.]
+    visual_events_image[spikes == 2] = [0., 0., 255.]
 
     return visual_events_image
 
@@ -121,8 +121,8 @@ if __name__ == '__main__':
     display_output = rospy.get_param('~display_output', False)
     display_combined_images = rospy.get_param('~display_combined_images', True)
     theta = rospy.get_param('~theta', 12)
-    # record_off_events = rospy.get_param('~record_off_events', True)
-    # register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
+    record_off_events = rospy.get_param('~record_off_events', True)
+    register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
@@ -219,6 +219,14 @@ if __name__ == '__main__':
             #     pickle.dump(img, f)
 
             events_image = spikes_queue.get()
+            if record_off_events:
+                if register_off_events_as_on:
+                    events_image[events_image == -1] = 1
+                else:
+                    events_image[events_image == -1] = 2
+            else:
+                    events_image[events_image == -1] = 0
+
             visual_events_image = get_visual_events_image_pydvs(events_image)
 
             if publish_output:
@@ -238,6 +246,7 @@ if __name__ == '__main__':
                     cv2.imshow('Simulated Event Camera stream', visual_events_image)
                 else:
                     current_image[events_image == 1] = [255., 0., 0.]
+                    current_image[events_image == 2] = [0., 0., 255.]
                     cv2.imshow('Simulated Event Camera stream', current_image)
                 cv2.waitKey(1)
 
