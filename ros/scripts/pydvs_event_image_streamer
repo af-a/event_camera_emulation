@@ -29,10 +29,9 @@ current_image_msg_ = None
 
 ## pyDVS Initializations:
 ## -------------------------------------------------------------------------
-# cam_res = 128
-cam_res = 480
-width = cam_res # square output
-height = cam_res
+width = 640
+height = 480
+
 shape = (height, width)
 
 UP_POLARITY     = "UP"
@@ -50,14 +49,9 @@ history_weight = 1.0
 threshold = 12 # ~ 0.05*255
 threshold = 20
 # max_threshold = 180 # 12*15 ~ 0.7*255
-scale_width = 0
-scale_height = 0
-col_from = 0
-col_to = 0
 curr = np.zeros(shape, dtype=np.int16) 
 img = np.zeros(shape, dtype=np.int16) 
-# ref = 128 * np.ones(shape, dtype=np.int16) 
-ref = cam_res * np.ones(shape, dtype=np.int16) 
+ref = 128 * np.ones(shape, dtype=np.int16)
 
 inh_width = 2
 is_inh_on = False
@@ -168,9 +162,8 @@ def processing_thread(img_queue, spike_queue, running, max_time_ms, spikes_copy_
     # cv2.waitKey(1)
     running.value = 0
 
-def preprocess_img_for_pydvs(img, width, height, col_from, col_to):
-    img = cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.int16),
-               (new_width, new_height))[:, col_from:col_to]
+def preprocess_img_for_pydvs(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.int16)
 
     return img
 
@@ -271,18 +264,7 @@ if __name__ == '__main__':
 
             ## pyDVS Main Loop Ops:
             ## -------------------------------------------------------------------------
-            is_first_pass = True
-
-            if is_first_pass:
-                height, width, _ = img.shape
-                new_height = cam_res
-                new_width = int( float(new_height*width)/float(height) )
-                col_from = (new_width - cam_res)//2
-                col_to = col_from + cam_res
-
-                is_first_pass = False
-
-            img = preprocess_img_for_pydvs(img, width, height, col_from, col_to)
+            img = preprocess_img_for_pydvs(img)
             img_queue.put(img)
 
             ## +++ Ahmed: Analyzing data:
