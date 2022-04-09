@@ -121,11 +121,8 @@ if __name__ == '__main__':
     display_output = rospy.get_param('~display_output', False)
     display_combined_images = rospy.get_param('~display_combined_images', True)
     theta = rospy.get_param('~theta', 12)
-    record_off_events = rospy.get_param('~record_off_events', True)
-    register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
-    compute_from_rgb = rospy.get_param('~compute_from_rgb', True)
-    use_log_diff = rospy.get_param('~use_log_diff', False)
-    method = rospy.get_param('~method', '')
+    # record_off_events = rospy.get_param('~record_off_events', True)
+    # register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
