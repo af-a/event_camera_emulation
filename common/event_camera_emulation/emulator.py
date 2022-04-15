@@ -104,7 +104,7 @@ class EventCameraEmulator(object):
         
         return diff_frame
 
-    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False, method=''):
+    def get_events_image_rgb(self, image_1, image_2, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False, method='', blur_images=False):
         '''
         Returns an emulated event image from two RGB images.
         This may be extended to be usable with different event emulation strategies.
@@ -134,13 +134,13 @@ class EventCameraEmulator(object):
             else:
                 raise ValueError('method must be one of [\'salvatore\']')
         else:
-            events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff)
+            events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff, blur_images=blur_images)
         # events_image = self.compute_thresholded_diff_events_image_rgb_ONE(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
 
 
         return events_image
 
-    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
+    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False, blur_images=False, blur_kernel_size=(5,5)):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two RGB frames from each other (optionally using log intensity values),
@@ -164,6 +164,14 @@ class EventCameraEmulator(object):
         event_frame: numpy.ndarray
             Estimated event image array.
         '''
+        if blur_images:
+            # print('[INFO] Blurring image!')
+            frame = cv2.blur(frame, blur_kernel_size)
+            previous_frame = cv2.blur(previous_frame, blur_kernel_size)
+
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            # previous_frame = cv2.cvtColor(previous_frame, cv2.COLOR_BGR2HSV)
+
         ## Frames must be cast to signed ints before computing diffs
         ## Otherwise, negative numbers wrap around to 255...
         if not use_log_diff:
