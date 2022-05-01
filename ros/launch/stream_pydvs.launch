@@ -10,6 +10,8 @@
     <arg name="theta" default="12"/>
     <arg name="record_off_events" default="True"/>
     <arg name="register_off_events_as_on" default="False"/>
+    <arg name="save_data" default="False"/>
+    <arg name="data_saving_path" default="/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images"/>
 
     <node pkg="event_camera_emulation" type="pydvs_event_image_streamer" name="pydvs_event_image_streamer"
         output="screen" respawn="false">
@@ -22,6 +24,8 @@
         <param name="theta" type="double" value="$(arg theta)"/>
         <param name="record_off_events" type="bool" value="$(arg record_off_events)"/>
         <param name="register_off_events_as_on" type="bool" value="$(arg register_off_events_as_on)"/>
+        <param name="save_data" type="bool" value="$(arg save_data)"/>
+        <param name="data_saving_path" type="str" value="$(arg data_saving_path)"/>
     </node>
 
 </launch>

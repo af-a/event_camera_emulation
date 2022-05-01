@@ -13,6 +13,8 @@
     <arg name="use_log_diff" default="False"/>
     <arg name="method" default=""/>
     <arg name="blur_images" default="False"/>
+    <arg name="save_data" default="False"/>
+    <arg name="data_saving_path" default="/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images"/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
         output="screen" respawn="false">
@@ -28,6 +30,8 @@
         <param name="use_log_diff" type="bool" value="$(arg use_log_diff)"/>
         <param name="method" type="str" value="$(arg method)"/>
         <param name="blur_images" type="bool" value="$(arg blur_images)"/>
+        <param name="save_data" type="bool" value="$(arg save_data)"/>
+        <param name="data_saving_path" type="str" value="$(arg data_saving_path)"/>
     </node>
 
 </launch>

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import argparse
 
@@ -15,7 +16,6 @@ import multiprocessing
 from multiprocessing import Process, Queue, Value
 import numpy as np
 
-## +++ Ahmed: Analyzing data:
 import pickle
 
 camera_device_ = None
@@ -123,6 +123,8 @@ if __name__ == '__main__':
     theta = rospy.get_param('~theta', 12)
     record_off_events = rospy.get_param('~record_off_events', True)
     register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
+    save_data = rospy.get_param('~save_data', False)
+    data_saving_path = rospy.get_param('~data_saving_path', '/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images')
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
@@ -195,6 +197,9 @@ if __name__ == '__main__':
                              args=(img_queue, spikes_queue, running, max_time_ms))
     spike_gen_proc.start()
 
+    if save_data:
+        rospy.logwarn('[pydvs_event_image_streamer] Will save data to:'.format(data_saving_path))
+
     rospy.loginfo('[pydvs_event_image_streamer] Streaming emulated event images')
     try:
         while not rospy.is_shutdown() and running.value == 1:
@@ -228,6 +233,12 @@ if __name__ == '__main__':
                     events_image[events_image == -1] = 0
 
             visual_events_image = get_visual_events_image_pydvs(events_image)
+
+            if save_data:
+                cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_rgb_image.png'.format(filename_suffix)), current_image)
+                cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
+                # with open(os.path.join(data_saving_path, '{}_ece_events_image.pkl'.format(filename_suffix)), 'wb') as f:
+                #     pickle.dump(events_image, f)
 
             if publish_output:
                 events_image_msg = bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
