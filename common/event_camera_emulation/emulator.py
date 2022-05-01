@@ -29,11 +29,11 @@ class EventCameraEmulator(object):
         image_1_gray = cv2.cvtColor(image_1, cv2.COLOR_BGR2GRAY)
         image_2_gray = cv2.cvtColor(image_2, cv2.COLOR_BGR2GRAY)
 
-        events_image = self.compute_thresholded_diff_events_image(image_1_gray, image_2_gray, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff)
+        events_image = self.compute_thresholded_diff(image_1_gray, image_2_gray, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff)
 
         return events_image
 
-    def compute_thresholded_diff_events_image(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
+    def compute_thresholded_diff(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two GRAY frames from each other,
@@ -130,17 +130,17 @@ class EventCameraEmulator(object):
 
         if method != '':
             if method == 'salvatore':
-                events_image = self.compute_thresholded_diff_events_salvatore_method(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
+                events_image = self.compute_thresholded_diff_salvatore_method(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
             else:
                 raise ValueError('method must be one of [\'salvatore\']')
         else:
-            events_image = self.compute_thresholded_diff_events_image_rgb_ALL(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff, blur_images=blur_images)
-        # events_image = self.compute_thresholded_diff_events_image_rgb_ONE(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
+            events_image = self.compute_thresholded_diff_rgb_multi_channel(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on, use_log_diff, blur_images=blur_images)
+        # events_image = self.compute_thresholded_diff_rgb_single_channel(image_1_rgb, image_2_rgb, theta, record_off_events, register_off_events_as_on)
 
 
         return events_image
 
-    def compute_thresholded_diff_events_image_rgb_ALL(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False, blur_images=False, blur_kernel_size=(5,5)):
+    def compute_thresholded_diff_rgb_multi_channel(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False, use_log_diff=False, blur_images=False, blur_kernel_size=(5,5)):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two RGB frames from each other (optionally using log intensity values),
@@ -203,7 +203,7 @@ class EventCameraEmulator(object):
 
         return event_frame
 
-    def compute_thresholded_diff_events_salvatore_method(self, frame, previous_frame, theta=0.25, record_off_events=True, register_off_events_as_on=False):
+    def compute_thresholded_diff_salvatore_method(self, frame, previous_frame, theta=0.25, record_off_events=True, register_off_events_as_on=False):
         '''
         Performs a procedure to compute a thresholded difference between two frames following the method described in the paper:
         "A Neuro-inspired Approach to Intelligent Collision Avoidance and Navigation (2020)".
@@ -246,7 +246,7 @@ class EventCameraEmulator(object):
 
         return event_frame
 
-    def compute_thresholded_diff_events_image_rgb_ONE(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
+    def compute_thresholded_diff_rgb_single_channel(self, frame, previous_frame, theta=20, record_off_events=True, register_off_events_as_on=False):
         '''
         Performs a custom procedure to compute a thresholded difference between two frames:
          - subtracting two RGB frames from each other,
