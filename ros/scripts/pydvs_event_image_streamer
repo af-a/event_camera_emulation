@@ -5,6 +5,7 @@ import sys
 import argparse
 
 import rospy
+import rospkg
 import cv2
 
 from cv_bridge import CvBridge, CvBridgeError
@@ -101,9 +102,6 @@ def processing_thread(img_queue, spikes_queue, running, max_time_ms):
 
         spikes_queue.put(spikes)
 
-        # with open('/home/ahmed/tmp/pydvs_spikes.pkl', 'wb') as f:
-        #     pickle.dump(spikes, f)
-
     running.value = 0
 
 def preprocess_img_for_pydvs(img):
@@ -124,7 +122,7 @@ if __name__ == '__main__':
     record_off_events = rospy.get_param('~record_off_events', True)
     register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
     save_data = rospy.get_param('~save_data', False)
-    data_saving_path = rospy.get_param('~data_saving_path', '/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images')
+    data_saving_path = rospy.get_param('~data_saving_path', os.path.join(rospkg.RosPack().get_path('kinova_sim_obstacle_avoidance'), 'data/saved_images'))
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
@@ -220,9 +218,6 @@ if __name__ == '__main__':
             img = preprocess_img_for_pydvs(img)
             img_queue.put(img)
 
-            # with open('/home/ahmed/tmp/pydvs_img.pkl', 'wb') as f:
-            #     pickle.dump(img, f)
-
             events_image = spikes_queue.get()
             if record_off_events:
                 if register_off_events_as_on:
@@ -237,8 +232,6 @@ if __name__ == '__main__':
             if save_data:
                 cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_rgb_image.png'.format(filename_suffix)), current_image)
                 cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
-                # with open(os.path.join(data_saving_path, '{}_ece_events_image.pkl'.format(filename_suffix)), 'wb') as f:
-                #     pickle.dump(events_image, f)
 
             if publish_output:
                 events_image_msg = bridge.cv2_to_imgmsg(events_image, encoding="passthrough")

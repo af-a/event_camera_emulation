@@ -7,6 +7,7 @@ import datetime
 import time
 
 import rospy
+import rospkg
 import cv2
 
 from event_camera_emulation.emulator import EventCameraEmulator
@@ -23,7 +24,7 @@ image_publisher_ = None
 visual_events_image_publisher_ = None
 current_image_msg_ = None
 
-## For thesis different ECE strategy analysisi (optional saving of data at trigger):
+## For thesis different ECE strategy analysis (optional saving of data at trigger):
 from std_msgs.msg import Bool
 triggered_ = False
 def trigger_callback(msg):
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     blur_images = rospy.get_param('~blur_images', False)
     save_data = rospy.get_param('~save_data', False)
     save_data_on_trigger = rospy.get_param('~save_data_on_trigger', False)
-    data_saving_path = rospy.get_param('~data_saving_path', '/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images')
+    data_saving_path = rospy.get_param('~data_saving_path', os.path.join(rospkg.RosPack().get_path('kinova_sim_obstacle_avoidance'), 'data/saved_images'))
     report_average_computation_time = rospy.get_param('~report_average_computation_time', False)
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
@@ -132,12 +133,11 @@ if __name__ == '__main__':
                     print('Error:', e)
                     continue
 
-            ## +++ Tests on 05.05.22: measuring computation time:
+            ## For measuring computation time:
             if report_average_computation_time:
                 single_computation_start_time = time.time()
 
             if compute_from_rgb:
-                # events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on)
                 events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff, method=method, blur_images=blur_images)
             else:
                 ## Baseline method: compute events from grayscale images:
@@ -153,8 +153,6 @@ if __name__ == '__main__':
                     cv2.imwrite(os.path.join(data_saving_path, '{}_ece_rgb_image_1.png'.format(filename_suffix)), previous_image)
                     cv2.imwrite(os.path.join(data_saving_path, '{}_ece_rgb_image_2.png'.format(filename_suffix)), current_image)
                     cv2.imwrite(os.path.join(data_saving_path, '{}_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
-                    # with open(os.path.join(data_saving_path, '{}_ece_events_image.pkl'.format(filename_suffix)), 'wb') as f:
-                    #     pickle.dump(events_image, f)
 
             if publish_output:
                 events_image_msg = bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
@@ -179,7 +177,7 @@ if __name__ == '__main__':
 
             previous_image = current_image
 
-            ## +++ Tests on 05.05.22: measuring computation time:
+            ## For measuring computation time:
             if report_average_computation_time:
                 single_computation_time = time.time() - single_computation_start_time 
                 if len(computation_times) >= computation_times_history_limit:
@@ -199,7 +197,6 @@ if __name__ == '__main__':
         if display_output:
             cv2.destroyAllWindows() 
 
-    ## +++ Tests on 05.05.22: measuring computation time:
     if report_average_computation_time:
         if len(computation_times) > 0:
             rospy.loginfo('[event_image_streamer] Average (emulation) computation time: {}'.format(sum(computation_times) / len(computation_times)))

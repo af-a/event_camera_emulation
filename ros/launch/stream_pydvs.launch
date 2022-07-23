@@ -11,7 +11,7 @@
     <arg name="record_off_events" default="True"/>
     <arg name="register_off_events_as_on" default="False"/>
     <arg name="save_data" default="False"/>
-    <arg name="data_saving_path" default="/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images"/>
+    <arg name="data_saving_path" default="${find kinova_sim_obstacle_avoidance}/data/saved_images"/>
 
     <node pkg="event_camera_emulation" type="pydvs_event_image_streamer" name="pydvs_event_image_streamer"
         output="screen" respawn="false">
