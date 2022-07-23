@@ -1,4 +1,7 @@
-from __future__ import print_function
+#!/usr/bin/env python3
+
+## TODO: Update script
+
 import sys
 import argparse
 
@@ -7,7 +10,6 @@ import cv2
 from event_camera_emulation.emulator import EventCameraEmulator
 
 camera_device_ = None
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -34,15 +36,18 @@ if __name__ == '__main__':
     try:
         while True: 
             _, current_image = camera_device_.read()
-            event_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, 60, True)
+            event_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, 30, 
+                                                                 record_off_events=True, 
+                                                                 register_off_events_as_on=False)
+
+            visual_event_image = e_camera_emulator.get_visual_events_image(event_image)
 
             previous_image = current_image
 
             cv2.imshow('Original Camera stream', current_image) 
-            cv2.imshow('Simulated Event Camera stream', event_image)
+            cv2.imshow('Simulated Event Camera stream', visual_event_image)
             cv2.waitKey(1)
 
-            cv2.imwrite('/tmp/sample_events_image.jpg', event_image)
     except KeyboardInterrupt:
         print('\nFinished streaming, exiting program...')
         camera_device_.release() 
