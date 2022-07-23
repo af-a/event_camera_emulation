@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import datetime
+import time
 
 import rospy
 import cv2
@@ -21,6 +22,17 @@ bridge = CvBridge()
 image_publisher_ = None
 visual_events_image_publisher_ = None
 current_image_msg_ = None
+
+## For thesis different ECE strategy analysisi (optional saving of data at trigger):
+from std_msgs.msg import Bool
+triggered_ = False
+def trigger_callback(msg):
+    global triggered_
+    triggered_ = msg.data
+    if triggered_:
+        rospy.loginfo('[event_image_streamer] Starting animation')
+    else:
+        rospy.loginfo('[event_image_streamer] Stopping animation')
 
 def image_callback(msg):
     global current_image_msg_
@@ -43,11 +55,17 @@ if __name__ == '__main__':
     method = rospy.get_param('~method', '')
     blur_images = rospy.get_param('~blur_images', False)
     save_data = rospy.get_param('~save_data', False)
+    save_data_on_trigger = rospy.get_param('~save_data_on_trigger', False)
     data_saving_path = rospy.get_param('~data_saving_path', '/home/ahmed/catkin_ws/src/kinova/kinova_sim_obstacle_avoidance/data/saved_images')
+    report_average_computation_time = rospy.get_param('~report_average_computation_time', False)
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
     visual_events_image_publisher_ = rospy.Publisher('visual_events_images', Image, queue_size=10)
+
+    if save_data_on_trigger:
+        trigger_topic = '/gazebo_object_animator/trigger'
+        trigger_subscriber = rospy.Subscriber(trigger_topic, Bool, trigger_callback)
 
     if source_type == 'camera_device':
         camera_device_id = rospy.get_param('~camera_device_id', 0)
@@ -89,10 +107,17 @@ if __name__ == '__main__':
         rospy.logerr('[event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
         sys.exit()
 
+    if report_average_computation_time:
+        computation_times = []
+        computation_times_history_limit = 1000
+
     e_camera_emulator = EventCameraEmulator()
 
     if save_data:
-        rospy.logwarn('[event_image_streamer] Will save data to:'.format(data_saving_path))
+        rospy.logwarn('[event_image_streamer] Will save data to:')
+        print(data_saving_path)
+    if save_data_on_trigger:
+        rospy.logwarn('[event_image_streamer] Will save data only when triggered!')
 
     rospy.loginfo('[event_image_streamer] Streaming emulated event images')
     try:
@@ -107,6 +132,10 @@ if __name__ == '__main__':
                     print('Error:', e)
                     continue
 
+            ## +++ Tests on 05.05.22: measuring computation time:
+            if report_average_computation_time:
+                single_computation_start_time = time.time()
+
             if compute_from_rgb:
                 # events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on)
                 events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff, method=method, blur_images=blur_images)
@@ -117,12 +146,15 @@ if __name__ == '__main__':
             visual_events_image = e_camera_emulator.get_visual_events_image(events_image)
 
             if save_data:
-                filename_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                cv2.imwrite(os.path.join(data_saving_path, '{}_ece_rgb_image_1.png'.format(filename_suffix)), previous_image)
-                cv2.imwrite(os.path.join(data_saving_path, '{}_ece_rgb_image_2.png'.format(filename_suffix)), current_image)
-                cv2.imwrite(os.path.join(data_saving_path, '{}_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
-                # with open(os.path.join(data_saving_path, '{}_ece_events_image.pkl'.format(filename_suffix)), 'wb') as f:
-                #     pickle.dump(events_image, f)
+                if save_data_on_trigger and not triggered_:
+                    pass
+                else:
+                    filename_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    cv2.imwrite(os.path.join(data_saving_path, '{}_ece_rgb_image_1.png'.format(filename_suffix)), previous_image)
+                    cv2.imwrite(os.path.join(data_saving_path, '{}_ece_rgb_image_2.png'.format(filename_suffix)), current_image)
+                    cv2.imwrite(os.path.join(data_saving_path, '{}_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
+                    # with open(os.path.join(data_saving_path, '{}_ece_events_image.pkl'.format(filename_suffix)), 'wb') as f:
+                    #     pickle.dump(events_image, f)
 
             if publish_output:
                 events_image_msg = bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
@@ -134,10 +166,11 @@ if __name__ == '__main__':
                 visual_events_image_publisher_.publish(visual_events_image_msg)
 
                 original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
+
             if display_output:
                 if not display_combined_images:
                     cv2.imshow('Original Camera stream', current_image)
-                    cv2.imshow('Simulated Event Camera stream', visual_events_image)
+                    # cv2.imshow('Simulated Event Camera stream', visual_events_image)
                 else:
                     current_image_copy = current_image.copy()
                     current_image_copy[events_image == 1] = [255., 0., 0.]
@@ -145,6 +178,15 @@ if __name__ == '__main__':
                 cv2.waitKey(1)
 
             previous_image = current_image
+
+            ## +++ Tests on 05.05.22: measuring computation time:
+            if report_average_computation_time:
+                single_computation_time = time.time() - single_computation_start_time 
+                if len(computation_times) >= computation_times_history_limit:
+                    _ = computation_times.pop()
+                computation_times.insert(0, single_computation_time)
+                rospy.loginfo('[event_image_streamer] Single computation time: {}'.format(single_computation_time))
+
             try:
                 rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
             except rospy.ROSTimeMovedBackwardsException as e:
@@ -156,3 +198,10 @@ if __name__ == '__main__':
             camera_device_.release() 
         if display_output:
             cv2.destroyAllWindows() 
+
+    ## +++ Tests on 05.05.22: measuring computation time:
+    if report_average_computation_time:
+        if len(computation_times) > 0:
+            rospy.loginfo('[event_image_streamer] Average (emulation) computation time: {}'.format(sum(computation_times) / len(computation_times)))
+        else:
+            rospy.loginfo('[event_image_streamer] Cannot report average (emulation) computation time, since no measurements were found')

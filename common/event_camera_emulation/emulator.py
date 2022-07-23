@@ -273,6 +273,8 @@ class EventCameraEmulator(object):
         diff_frame = frame.astype(int) - previous_frame.astype(int)
         theta_frame = np.full((diff_frame.shape[0], diff_frame.shape[1], 3), theta, dtype='uint8')
 
+        ## TODO: double-check seemingly wrong implementation of single-channel method:
+
         ## Find indices of pixels for which R,G,B are all > theta:
         bools = (diff_frame - theta_frame) > 0.
         # Note: If RGB are all True, the sum for a pixel would be 3:
