@@ -169,9 +169,6 @@ class EventCameraEmulator(object):
             frame = cv2.blur(frame, blur_kernel_size)
             previous_frame = cv2.blur(previous_frame, blur_kernel_size)
 
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            # previous_frame = cv2.cvtColor(previous_frame, cv2.COLOR_BGR2HSV)
-
         ## Frames must be cast to signed ints before computing diffs
         ## Otherwise, negative numbers wrap around to 255...
         if not use_log_diff:
@@ -273,8 +270,6 @@ class EventCameraEmulator(object):
         diff_frame = frame.astype(int) - previous_frame.astype(int)
         theta_frame = np.full((diff_frame.shape[0], diff_frame.shape[1], 3), theta, dtype='uint8')
 
-        ## TODO: double-check seemingly wrong implementation of single-channel method:
-
         ## Find indices of pixels for which R,G,B are all > theta:
         bools = (diff_frame - theta_frame) > 0.
         # Note: If RGB are all True, the sum for a pixel would be 3:
@@ -289,7 +284,7 @@ class EventCameraEmulator(object):
         event_frame[on_indices] = 1
         if record_off_events:
             if register_off_events_as_on:
-                event_frame[off_indices] = 1    ## temp change to consider both ON and OFF events
+                event_frame[off_indices] = 1
             else:
                 event_frame[off_indices] = 2
 
