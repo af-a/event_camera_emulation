@@ -1,0 +1,272 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import argparse
+import datetime
+import multiprocessing
+
+import rospy
+import rospkg
+import cv2
+import numpy as np
+import pydvs.generate_spikes as gs
+
+from multiprocessing import Process, Queue, Value
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
+
+
+camera_device_ = None
+bridge = CvBridge()
+
+image_publisher_ = None
+visual_events_image_publisher_ = None
+current_image_msg_ = None
+
+## pyDVS Parameters:
+## -------------------------------------------------------------------------
+
+UP_POLARITY     = "UP"
+DOWN_POLARITY   = "DOWN"
+MERGED_POLARITY = "MERGED"
+POLARITY_DICT   = {UP_POLARITY: np.uint8(0), 
+                   DOWN_POLARITY: np.uint8(1), 
+                   MERGED_POLARITY: np.uint8(2),
+                   0: UP_POLARITY,
+                   1: DOWN_POLARITY,
+                   2: MERGED_POLARITY}
+polarity = POLARITY_DICT[ MERGED_POLARITY ]
+history_weight = 1.0
+inh_width = 2
+is_inh_on = False
+
+width = None
+height = None
+shape = None
+curr = None
+img = None
+ref = None
+fps = None
+max_time_ms = None
+inh_coords = None
+spikes_queue = None
+threshold = None
+
+def image_callback(msg):
+    global current_image_msg_
+    current_image_msg_ = msg
+
+def get_visual_events_image_pydvs(spikes):
+    visual_events_image = np.full((spikes.shape[0], spikes.shape[1], 3), 255., dtype='uint8')
+
+    visual_events_image[spikes == 1] = [255., 0., 0.]
+    visual_events_image[spikes == 2] = [0., 0., 255.]
+
+    return visual_events_image
+
+
+## pyDVS Thread Functions:
+## -------------------------------------------------------------------------
+
+def processing_thread(img_queue, spikes_queue, running, max_time_ms):
+    global shape, height, width, inh_coords, inh_width, ref, threshold
+
+    spikes   = np.zeros(shape, dtype=np.int16) 
+    diff     = np.zeros(shape, dtype=np.int16) 
+    abs_diff = np.zeros(shape, dtype=np.int16) 
+
+    num_bits = 6
+    num_active_bits = 2
+    log2_table = gs.generate_log2_table(num_active_bits, num_bits)[num_active_bits - 1]
+
+    while True:
+        img = img_queue.get()
+
+        if img is None or running.value == 0:
+            running.value = 0
+            break
+
+        diff[:], abs_diff[:], spikes[:] = gs.thresholded_difference(img, ref, threshold)
+
+        if is_inh_on:
+            spikes[:] = gs.local_inhibition(spikes, abs_diff, inh_coords, 
+                                       width, height, inh_width)
+
+        ref[:] = gs.update_reference_time_binary_thresh(abs_diff, spikes, ref,
+                                                     threshold, max_time_ms,
+                                                     num_active_bits,
+                                                     history_weight,
+                                                     log2_table)
+
+        spikes_queue.put(spikes)
+
+    running.value = 0
+
+def preprocess_img_for_pydvs(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.int16)
+
+    return img
+
+
+if __name__ == '__main__':
+    rospy.init_node('pydvs_event_image_streamer')
+    rate = rospy.Rate(30)
+
+    source_type = rospy.get_param('~source_type', 'camera_device')
+    publish_output = rospy.get_param('~publish_output', True)
+    display_output = rospy.get_param('~display_output', False)
+    display_combined_images = rospy.get_param('~display_combined_images', True)
+    theta = rospy.get_param('~theta', 12)
+    record_off_events = rospy.get_param('~record_off_events', True)
+    register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
+    save_data = rospy.get_param('~save_data', False)
+    data_saving_path = rospy.get_param('~data_saving_path', '')
+
+    original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
+    events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
+    visual_events_image_publisher_ = rospy.Publisher('visual_events_images', Image, queue_size=10)
+
+    if source_type == 'camera_device':
+        camera_device_id = rospy.get_param('~camera_device_id', 0)
+        rospy.loginfo('[pydvs_event_image_streamer] Accessing camera device: {}'.format(camera_device_id))
+        try:
+            camera_device_ = cv2.VideoCapture(int(camera_device_id))
+        except Exception as e:
+            rospy.loginfo('[pydvs_event_image_streamer] Could not access specified camera device!')
+            print('Error:', e)
+            sys.exit()
+
+        if camera_device_.isOpened():
+            rospy.loginfo('[pydvs_event_image_streamer] Successfully opened camera device')
+            _, test_image = camera_device_.read()
+            height = test_image.shape[0]
+            width = test_image.shape[1]
+        else:
+            rospy.loginfo('[pydvs_event_image_streamer] Could not open camera device!')
+            sys.exit()
+    elif source_type == 'ros_topic':
+        image_topic = rospy.get_param('~image_topic', '/camera/color/image_raw')
+        image_subscriber = rospy.Subscriber(image_topic, Image, image_callback)
+
+        rospy.loginfo('[pydvs_event_image_streamer] Subscribing to image topic: {}'.format(image_topic))
+        rospy.loginfo('[pydvs_event_image_streamer] Waiting for reception of first image message...')
+        try:
+            while current_image_msg_ is None:
+                rospy.sleep(0.1)
+        except (KeyboardInterrupt, rospy.ROSInterruptException):
+            rospy.loginfo('[pydvs_event_image_streamer] Terminating...')
+            sys.exit()
+
+        rospy.loginfo('[pydvs_event_image_streamer] Received first image message')
+        try:
+            test_image = bridge.imgmsg_to_cv2(current_image_msg_, "bgr8")
+            height = test_image.shape[0]
+            width = test_image.shape[1]
+        except CvBridgeError as e:
+            rospy.logwarn('[pydvs_event_image_streamer] Failed to convert image message to opencv format!')
+            print('Error:', e)
+            sys.exit()
+    else:
+        rospy.logerr('[pydvs_event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
+        sys.exit()
+
+    ## pyDVS Initializations:
+    ## -------------------------------------------------------------------------
+    shape = (height, width)
+    curr = np.zeros(shape, dtype=np.int16)
+    img = np.zeros(shape, dtype=np.int16)
+    ref = 128 * np.ones(shape, dtype=np.int16)
+
+    threshold = theta
+    inh_coords = gs.generate_inh_coords(width, height, inh_width)
+
+    fps = 30
+    max_time_ms = int(1000./fps)
+
+    ## pyDVS Thread Starting:
+    ## -------------------------------------------------------------------------
+    running = Value('i', 1)
+    spikes_queue = Queue()
+    img_queue = Queue()
+
+    spike_gen_proc = Process(target=processing_thread, 
+                             args=(img_queue, spikes_queue, running, max_time_ms))
+    spike_gen_proc.start()
+
+    if save_data:
+        rospy.logwarn('[pydvs_event_image_streamer] Will save data to:'.format(data_saving_path))
+
+    rospy.loginfo('[pydvs_event_image_streamer] Streaming emulated event images')
+    try:
+        while not rospy.is_shutdown() and running.value == 1:
+            if source_type == 'camera_device':
+                _, current_image = camera_device_.read()
+            elif source_type == 'ros_topic':
+                try:
+                    current_image = bridge.imgmsg_to_cv2(current_image_msg_, "bgr8")
+                except CvBridgeError as e:
+                    rospy.logwarn('[pydvs_event_image_streamer] Failed to convert image message to opencv format!')
+                    print('Error:', e)
+                    continue
+
+            img = current_image
+
+            ## pyDVS Main Loop Ops:
+            ## -------------------------------------------------------------------------
+            img = preprocess_img_for_pydvs(img)
+            img_queue.put(img)
+
+            events_image = spikes_queue.get()
+            if record_off_events:
+                if register_off_events_as_on:
+                    events_image[events_image == -1] = 1
+                else:
+                    events_image[events_image == -1] = 2
+            else:
+                    events_image[events_image == -1] = 0
+
+            visual_events_image = get_visual_events_image_pydvs(events_image)
+
+            if save_data:
+                filename_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_rgb_image.png'.format(filename_suffix)), current_image)
+                cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
+
+            if publish_output:
+                events_image_msg = bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
+                events_image_msg.header.stamp = rospy.Time.now()
+                events_image_publisher_.publish(events_image_msg)
+
+                visual_events_image_msg = bridge.cv2_to_imgmsg(visual_events_image, encoding="bgr8")
+                visual_events_image_msg.header.stamp = rospy.Time.now()
+                visual_events_image_publisher_.publish(visual_events_image_msg)
+
+                original_image_publisher_.publish(bridge.cv2_to_imgmsg(current_image, encoding="bgr8"))
+
+            if display_output:
+                if not display_combined_images:
+                    cv2.imshow('Original Camera stream', current_image) 
+                    cv2.imshow('Simulated Event Camera stream', visual_events_image)
+                else:
+                    current_image[events_image == 1] = [255., 0., 0.]
+                    current_image[events_image == 2] = [0., 0., 255.]
+                    cv2.imshow('Simulated Event Camera stream', current_image)
+                cv2.waitKey(1)
+
+            try:
+                rate.sleep()
+            except rospy.ROSTimeMovedBackwardsException as e:
+                rospy.logwarn('[pydvs_event_image_streamer] Caught ROSTimeMovedBackwardsException when executing rate.sleep(). '
+                               'This can happen when incoming messages had stopped, and have just resumed publishing.')
+    except (KeyboardInterrupt, rospy.ROSInterruptException):
+        rospy.loginfo('[pydvs_event_image_streamer] Stopping node')
+        if source_type == 'camera_device':
+            camera_device_.release() 
+        if display_output:
+            cv2.destroyAllWindows() 
+
+    img_queue.put(None)
+    spike_gen_proc.join()
+    spikes_queue.put(None)
+    rospy.loginfo('[pydvs_event_image_streamer] Stopping spike generation thread')

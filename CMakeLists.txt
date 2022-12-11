@@ -3,7 +3,6 @@ project(event_camera_emulation)
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  roscpp
   rospy
   sensor_msgs
 )
