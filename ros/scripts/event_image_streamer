@@ -108,10 +108,6 @@ if __name__ == '__main__':
         rospy.logerr('[event_image_streamer] Invalid source type! Must be either camera_device or ros_topic')
         sys.exit()
 
-    if report_average_computation_time:
-        computation_times = []
-        computation_times_history_limit = 1000
-
     e_camera_emulator = EventCameraEmulator()
 
     if save_data:
@@ -132,10 +128,6 @@ if __name__ == '__main__':
                     rospy.logwarn('[event_image_streamer] Failed to convert image message to opencv format!')
                     print('Error:', e)
                     continue
-
-            ## For measuring computation time:
-            if report_average_computation_time:
-                single_computation_start_time = time.time()
 
             if compute_from_rgb:
                 events_image = e_camera_emulator.get_events_image_rgb(current_image, previous_image, theta, record_off_events, register_off_events_as_on, use_log_diff=use_log_diff, method=method, blur_images=blur_images)
@@ -177,14 +169,6 @@ if __name__ == '__main__':
 
             previous_image = current_image
 
-            ## For measuring computation time:
-            if report_average_computation_time:
-                single_computation_time = time.time() - single_computation_start_time 
-                if len(computation_times) >= computation_times_history_limit:
-                    _ = computation_times.pop()
-                computation_times.insert(0, single_computation_time)
-                rospy.loginfo('[event_image_streamer] Single computation time: {}'.format(single_computation_time))
-
             try:
                 rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
             except rospy.ROSTimeMovedBackwardsException as e:
@@ -196,9 +180,3 @@ if __name__ == '__main__':
             camera_device_.release() 
         if display_output:
             cv2.destroyAllWindows() 
-
-    if report_average_computation_time:
-        if len(computation_times) > 0:
-            rospy.loginfo('[event_image_streamer] Average (emulation) computation time: {}'.format(sum(computation_times) / len(computation_times)))
-        else:
-            rospy.loginfo('[event_image_streamer] Cannot report average (emulation) computation time, since no measurements were found')

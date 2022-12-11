@@ -16,7 +16,6 @@
     <arg name="save_data" default="False"/>
     <arg name="save_data_on_trigger" default="False"/>
     <arg name="data_saving_path" default=""/>
-    <arg name="report_average_computation_time" default="False"/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
         output="screen" respawn="false">
@@ -35,7 +34,6 @@
         <param name="save_data" type="bool" value="$(arg save_data)"/>
         <param name="save_data_on_trigger" type="bool" value="$(arg save_data_on_trigger)"/>
         <param name="data_saving_path" type="str" value="$(arg data_saving_path)"/>
-        <param name="report_average_computation_time" type="bool" value="$(arg report_average_computation_time)"/>
     </node>
 
 </launch>
