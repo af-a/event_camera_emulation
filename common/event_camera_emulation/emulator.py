@@ -203,7 +203,7 @@ class EventCameraEmulator(object):
     def compute_thresholded_diff_salvatore_method(self, frame, previous_frame, theta=0.25, record_off_events=True, register_off_events_as_on=False):
         '''
         Performs a procedure to compute a thresholded difference between two frames following the method described in the paper:
-        "A Neuro-inspired Approach to Intelligent Collision Avoidance and Navigation (2020)".
+        Salvatore, Nikolaus, et al. "A neuro-inspired approach to intelligent collision avoidance and navigation." 2020 AIAA/IEEE 39th Digital Avionics Systems Conference (DASC). IEEE, 2020.
 
         Parameters
         ----------
