@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-## TODO: Update script
+"""Runs a sample program demonstrating basic event emulation.
+
+Usage:
+    $ python3 stream_camera_events.py -v $DEVICE_ID
+
+"""
 
 import sys
 import argparse
@@ -9,6 +14,7 @@ import cv2
 
 from event_camera_emulation.emulator import EventCameraEmulator
 
+
 camera_device_ = None
 
 if __name__ == '__main__':
@@ -16,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--video_device', '-v', type=str,
                         default='0', help='The video device. For a camera,'
                         'provide its id, for e.g. 0. For a video file, provide'
-                        'its path')
+                        'its path.')
     args = parser.parse_args()
 
     try:
@@ -25,10 +31,10 @@ if __name__ == '__main__':
         camera_device_ = cv2.VideoCapture(args.video_device)
 
     if camera_device_.isOpened():
-        print('Successfully opened camera device')
+        print('[stream_camera_events] [INFO] Successfully opened camera device')
         _, previous_image = camera_device_.read()
     else:
-        print('Could not open camera device!')
+        print('[stream_camera_events] [ERROR] Could not access camera device!')
         sys.exit()
 
     e_camera_emulator = EventCameraEmulator()
@@ -49,6 +55,6 @@ if __name__ == '__main__':
             cv2.waitKey(1)
 
     except KeyboardInterrupt:
-        print('\nFinished streaming, exiting program...')
+        print('\n[stream_camera_events] [INFO] Finished streaming, exiting program...')
         camera_device_.release() 
         cv2.destroyAllWindows() 
