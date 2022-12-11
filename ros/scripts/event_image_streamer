@@ -4,7 +4,6 @@ import os
 import sys
 import argparse
 import datetime
-import time
 
 import rospy
 import rospkg
@@ -15,8 +14,6 @@ from event_camera_emulation.emulator import EventCameraEmulator
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
-
-import pickle
 
 
 camera_device_ = None
