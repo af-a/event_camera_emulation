@@ -14,26 +14,26 @@ from event_camera_emulation.emulator import EventCameraEmulator
 
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
+from std_msgs.msg import Bool
 
 import pickle
 
+
 camera_device_ = None
 bridge = CvBridge()
+triggered_ = False
 
 image_publisher_ = None
 visual_events_image_publisher_ = None
 current_image_msg_ = None
 
-## For thesis different ECE strategy analysis (optional saving of data at trigger):
-from std_msgs.msg import Bool
-triggered_ = False
 def trigger_callback(msg):
     global triggered_
     triggered_ = msg.data
     if triggered_:
-        rospy.loginfo('[event_image_streamer] Starting animation')
+        rospy.loginfo('[event_image_streamer] Starting data recording')
     else:
-        rospy.loginfo('[event_image_streamer] Stopping animation')
+        rospy.loginfo('[event_image_streamer] Stopping data recording')
 
 def image_callback(msg):
     global current_image_msg_
@@ -57,15 +57,14 @@ if __name__ == '__main__':
     blur_images = rospy.get_param('~blur_images', False)
     save_data = rospy.get_param('~save_data', False)
     save_data_on_trigger = rospy.get_param('~save_data_on_trigger', False)
-    data_saving_path = rospy.get_param('~data_saving_path', os.path.join(rospkg.RosPack().get_path('kinova_sim_obstacle_avoidance'), 'data/saved_images'))
-    report_average_computation_time = rospy.get_param('~report_average_computation_time', False)
+    data_saving_path = rospy.get_param('~data_saving_path', '')
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
     visual_events_image_publisher_ = rospy.Publisher('visual_events_images', Image, queue_size=10)
 
     if save_data_on_trigger:
-        trigger_topic = '/gazebo_object_animator/trigger'
+        trigger_topic = '/trigger'
         trigger_subscriber = rospy.Subscriber(trigger_topic, Bool, trigger_callback)
 
     if source_type == 'camera_device':
@@ -160,7 +159,7 @@ if __name__ == '__main__':
             if display_output:
                 if not display_combined_images:
                     cv2.imshow('Original Camera stream', current_image)
-                    # cv2.imshow('Simulated Event Camera stream', visual_events_image)
+                    cv2.imshow('Simulated Event Camera stream', visual_events_image)
                 else:
                     current_image_copy = current_image.copy()
                     current_image_copy[events_image == 1] = [255., 0., 0.]
@@ -170,7 +169,7 @@ if __name__ == '__main__':
             previous_image = current_image
 
             try:
-                rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
+                rate.sleep()
             except rospy.ROSTimeMovedBackwardsException as e:
                 rospy.logwarn('[event_image_streamer] Caught ROSTimeMovedBackwardsException when executing rate.sleep(). '
                                'This can happen when incoming messages had stopped, and have just resumed publishing.')

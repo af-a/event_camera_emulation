@@ -28,6 +28,7 @@ current_image_msg_ = None
 
 ## pyDVS Parameters:
 ## -------------------------------------------------------------------------
+
 UP_POLARITY     = "UP"
 DOWN_POLARITY   = "DOWN"
 MERGED_POLARITY = "MERGED"
