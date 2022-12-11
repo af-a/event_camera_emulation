@@ -3,21 +3,19 @@
 import os
 import sys
 import argparse
+import datetime
+import multiprocessing
 
 import rospy
 import rospkg
 import cv2
+import numpy as np
+import pydvs.generate_spikes as gs
 
+from multiprocessing import Process, Queue, Value
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
-## From pyDVS scripts:
-import pydvs.generate_spikes as gs
-import multiprocessing
-from multiprocessing import Process, Queue, Value
-import numpy as np
-
-import pickle
 
 camera_device_ = None
 bridge = CvBridge()
@@ -113,7 +111,7 @@ def preprocess_img_for_pydvs(img):
 
 if __name__ == '__main__':
     rospy.init_node('pydvs_event_image_streamer')
-    rate = rospy.Rate(30)         # currently highest achievable
+    rate = rospy.Rate(30)
 
     source_type = rospy.get_param('~source_type', 'camera_device')
     publish_output = rospy.get_param('~publish_output', True)
@@ -123,7 +121,7 @@ if __name__ == '__main__':
     record_off_events = rospy.get_param('~record_off_events', True)
     register_off_events_as_on = rospy.get_param('~register_off_events_as_on', True)
     save_data = rospy.get_param('~save_data', False)
-    data_saving_path = rospy.get_param('~data_saving_path', os.path.join(rospkg.RosPack().get_path('kinova_sim_obstacle_avoidance'), 'data/saved_images'))
+    data_saving_path = rospy.get_param('~data_saving_path', '')
 
     original_image_publisher_ = rospy.Publisher('original_images', Image, queue_size=10)
     events_image_publisher_ = rospy.Publisher('events_images', Image, queue_size=10)
@@ -231,6 +229,7 @@ if __name__ == '__main__':
             visual_events_image = get_visual_events_image_pydvs(events_image)
 
             if save_data:
+                filename_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_rgb_image.png'.format(filename_suffix)), current_image)
                 cv2.imwrite(os.path.join(data_saving_path, '{}_pydvs_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
 
@@ -256,7 +255,7 @@ if __name__ == '__main__':
                 cv2.waitKey(1)
 
             try:
-                rate.sleep()      ## NOTE: this can not be used with display_output, since cv windows hang
+                rate.sleep()
             except rospy.ROSTimeMovedBackwardsException as e:
                 rospy.logwarn('[pydvs_event_image_streamer] Caught ROSTimeMovedBackwardsException when executing rate.sleep(). '
                                'This can happen when incoming messages had stopped, and have just resumed publishing.')
