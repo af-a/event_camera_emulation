@@ -15,7 +15,7 @@
     <arg name="blur_images" default="False"/>
     <arg name="save_data" default="False"/>
     <arg name="save_data_on_trigger" default="False"/>
-    <arg name="data_saving_path" default="${find kinova_sim_obstacle_avoidance}/data/saved_images"/>
+    <arg name="data_saving_path" default=""/>
     <arg name="report_average_computation_time" default="False"/>
 
     <node pkg="event_camera_emulation" type="event_image_streamer" name="event_image_streamer"
