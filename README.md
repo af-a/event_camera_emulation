@@ -1,10 +1,10 @@
-<p align="center"><img width=60% src="https://github.com/AhmedFaisal95/event_camera_emulation/blob/dev/media/images/ece_logo.png"></p>
+<p align="center"><img width=60% src="https://github.com/AhmedFaisal95/event_camera_emulation/blob/main/media/images/ece_logo.png"></p>
 &nbsp;
 
 <div align="center">
 
 [![Python 3.8](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
-[![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/AhmedFaisal95/event_camera_emulation/blob/dev/LICENSE)
+[![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/AhmedFaisal95/event_camera_emulation/blob/main/LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/AhmedFaisal95/event_camera_emulation.svg)](https://github.com/AhmedFaisal95/event_camera_emulation/releases)
 [![Maintenance](https://img.shields.io/badge/Maintained-yes-green.svg)](https://github.com/AhmedFaisal95/event_camera_emulation)
 ![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)
