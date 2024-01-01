@@ -1,1 +1,17 @@
-*.pyc 
+# Python
+*.pyc
+**/__pycache__/
+
+# Python distribution/packaging
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Vim
+*.swp
+
+# Temporary files
+tmp/
