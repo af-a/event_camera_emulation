@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='event_camera_emulation',
-    version='0.1.1',
+    version='1.0.1',
     description='The event_camera_emulation package',
     author='Ahmed Faisal Abdelrahman',
     author_email='ahmed.abdelrahman@outlook.de',

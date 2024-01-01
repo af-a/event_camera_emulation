@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>event_camera_emulation</name>
-  <version>0.1.1</version>
+  <version>1.0.1</version>
   <description>The event_camera_emulation package</description>
 
   <maintainer email="ahmed.abdelrahman@outlook.de">Ahmed Faisal Abdelrahman</maintainer>
