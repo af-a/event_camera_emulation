@@ -136,7 +136,8 @@ class EventImageStreamerNode(Node):
     def run_node(self):
         try:
             while rclpy.ok():
-                rclpy.spin_once(self)
+                # Note: timeout_sec is necessary to avoid blocking due to camera_device input:
+                rclpy.spin_once(self, timeout_sec=0)
 
                 if self.source_type == 'camera_device':
                     _, self.current_image = self.camera_device_.read()
