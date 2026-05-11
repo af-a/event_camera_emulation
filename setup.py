@@ -1,24 +1,45 @@
-from setuptools import setup, find_packages
+#!/usr/bin/env python3
+
+import os
+import glob
+
+from setuptools import find_packages, setup
+
+package_name = 'event_camera_emulation'
 
 setup(
-    name='event_camera_emulation',
+    name=package_name,
     version='1.0.1',
-    description='The event_camera_emulation package',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob.glob(os.path.join('launch', '*launch.[pxy][yma]*')))
+    ],
+    install_requires=['setuptools'],
+    # install_requires=['wheel'],
     author='Ahmed Faisal Abdelrahman',
     author_email='ahmed.abdelrahman@outlook.de',
-    maintainer='Ahmed Faisal Abdelrahman',
+    maintainer='Ahmed Abdelrahman',
     maintainer_email='ahmed.abdelrahman@outlook.de',
-    url='https://github.com/af-a/event_camera_emulation',
-    package_dir={'': 'common'},
-    packages=find_packages(include=['event_camera_emulation'], 
-                           where='common'),
+    description='Package for emulating event camera data using standard RGB images',
     license='MIT',
     install_requires=[
       'opencv-python>=4.8.1',
       'numpy',
       'scikit-image',
     ],
-    setup_requires=['wheel'],
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
+    # entry_points={
+    #     'console_scripts': [
+    #         'todo_node = event_camera_emulation.todo_node:main'
+    #     ],
+    # },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -30,5 +51,5 @@ setup(
         'Event-based vision',
         'Neuromorphic',
     ],
-    zip_safe=False,
+    zip_safe=True,
 )
