@@ -59,7 +59,7 @@ class EventImageStreamerNode(Node):
         self.declare_parameter('blur_images', False)
         self.declare_parameter('save_data', False)
         self.declare_parameter('save_data_on_trigger', False)
-        self.declare_parameter('data_saving_path', '')
+        self.declare_parameter('output_dir_path', '/tmp')
 
         self.source_type = self.get_parameter('source_type').value
         self.camera_device_id = self.get_parameter('camera_device_id').value
@@ -77,7 +77,7 @@ class EventImageStreamerNode(Node):
         self.blur_images = self.get_parameter('blur_images').value
         self.save_data = self.get_parameter('save_data').value
         self.save_data_on_trigger = self.get_parameter('save_data_on_trigger').value
-        self.data_saving_path = self.get_parameter('data_saving_path').value
+        self.output_dir_path = self.get_parameter('output_dir_path').value
 
         # Initialize publishers:
         self.original_image_publisher_ = self.create_publisher(Image, 
@@ -166,9 +166,9 @@ class EventImageStreamerNode(Node):
                         pass
                     else:
                         filename_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                        cv2.imwrite(os.path.join(self.data_saving_path, '{}_ece_rgb_image_1.png'.format(filename_suffix)), self.previous_image)
-                        cv2.imwrite(os.path.join(self.data_saving_path, '{}_ece_rgb_image_2.png'.format(filename_suffix)), self.current_image)
-                        cv2.imwrite(os.path.join(self.data_saving_path, '{}_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
+                        cv2.imwrite(os.path.join(self.output_dir_path, '{}_ece_rgb_image_1.png'.format(filename_suffix)), self.previous_image)
+                        cv2.imwrite(os.path.join(self.output_dir_path, '{}_ece_rgb_image_2.png'.format(filename_suffix)), self.current_image)
+                        cv2.imwrite(os.path.join(self.output_dir_path, '{}_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
 
                 if self.publish_output:
                     events_image_msg = self.bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
