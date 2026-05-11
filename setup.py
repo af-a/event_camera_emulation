@@ -36,11 +36,12 @@ setup(
             'pytest',
         ],
     },
-    # entry_points={
-    #     'console_scripts': [
-    #         'todo_node = event_camera_emulation.todo_node:main'
-    #     ],
-    # },
+    entry_points={
+        'console_scripts': [
+            'event_image_streamer = event_camera_emulation.event_image_streamer_node:main'
+            # 'pydvs_event_image_streamer = event_camera_emulation.pydvs_event_image_streamer_node:main'
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
