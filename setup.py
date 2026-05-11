@@ -26,9 +26,10 @@ setup(
     # install_requires=['wheel'],
     install_requires=[
       'setuptools',
-      'opencv-python>=4.8.1',
+      'opencv-python',
       'numpy',
       'scikit-image',
+      'cv-bridge',
     ],
     extras_require={
         'test': [
