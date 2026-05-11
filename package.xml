@@ -10,8 +10,8 @@
   <url>https://github.com/af-a/event_camera_emulation</url>
   <license>MIT</license>
 
+  <depend>rclpy</depend>
   <depend>cv_bridge</depend>
-  <depend>rospy</depend>
   <depend>sensor_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>
