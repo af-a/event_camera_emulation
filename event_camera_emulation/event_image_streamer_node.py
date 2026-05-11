@@ -60,7 +60,6 @@ class EventImageStreamerNode(Node):
         self.declare_parameter('save_data', False)
         self.declare_parameter('save_data_on_trigger', False)
         self.declare_parameter('data_saving_path', '')
-        self.declare_parameter('rate', 30)
 
         self.source_type = self.get_parameter('source_type').value
         self.camera_device_id = self.get_parameter('camera_device_id').value
@@ -79,7 +78,6 @@ class EventImageStreamerNode(Node):
         self.save_data = self.get_parameter('save_data').value
         self.save_data_on_trigger = self.get_parameter('save_data_on_trigger').value
         self.data_saving_path = self.get_parameter('data_saving_path').value
-        self.rate = self.get_parameter('rate').value
 
         # Initialize publishers:
         self.original_image_publisher_ = self.create_publisher(Image, 
@@ -195,8 +193,6 @@ class EventImageStreamerNode(Node):
 
                 self.previous_image = self.current_image.copy()
 
-                time.sleep(float(1. / self.rate))
-
         except KeyboardInterrupt:
             self.get_logger().info(f'Stopping node')
             if self.source_type == 'camera_device':
@@ -238,7 +234,7 @@ def main(args=None):
         try:
             while event_image_streamer_node.current_image_msg is None:
                 rclpy.spin_once(event_image_streamer_node)
-                time.sleep(float(1. / event_image_streamer_node.rate))
+                time.sleep(0.001)
         except (KeyboardInterrupt, ExternalShutdownException, SystemExit):
             event_image_streamer_node.get_logger().info(f'Terminating...')
             event_image_streamer_node.destroy_node()
