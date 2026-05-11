@@ -17,15 +17,15 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob.glob(os.path.join('launch', '*launch.[pxy][yma]*')))
     ],
-    install_requires=['setuptools'],
-    # install_requires=['wheel'],
     author='Ahmed Faisal Abdelrahman',
     author_email='ahmed.abdelrahman@outlook.de',
     maintainer='Ahmed Abdelrahman',
     maintainer_email='ahmed.abdelrahman@outlook.de',
     description='Package for emulating event camera data using standard RGB images',
     license='MIT',
+    # install_requires=['wheel'],
     install_requires=[
+      'setuptools',
       'opencv-python>=4.8.1',
       'numpy',
       'scikit-image',
