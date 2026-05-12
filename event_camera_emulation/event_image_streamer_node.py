@@ -251,13 +251,9 @@ def main(args=None):
         event_image_streamer_node.destroy_node()
         event_image_streamer_node.shutdown()
 
-    try:
-        event_image_streamer_node.run_node()
-    except SystemExit:
-        rclpy.logging.get_logger('rclpy').info('Stopping node...')
+    event_image_streamer_node.run_node()
 
     event_image_streamer_node.destroy_node()
-    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
