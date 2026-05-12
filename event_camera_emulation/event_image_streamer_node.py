@@ -94,7 +94,8 @@ class EventImageStreamerNode(Node):
                                                                  self.trigger_callback, 
                                                                  10)
 
-        # self.image_subscription = self.create_subscription(Image, self.input_image_topic, self.image_callback, 10)
+        if self.source_type == 'ros_topic':
+            self.image_subscription = self.create_subscription(Image, self.input_image_topic, self.image_callback, 10)
 
         # Initialize data variables:
         self.e_camera_emulator = EventCameraEmulator()
@@ -227,8 +228,6 @@ def main(args=None):
             event_image_streamer_node.get_logger().error(f'Could not open camera device!')
             raise SystemExit
     elif event_image_streamer_node.source_type == 'ros_topic':
-        event_image_streamer_node.image_subscription = event_image_streamer_node.create_subscription(Image, event_image_streamer_node.input_image_topic, event_image_streamer_node.image_callback, 10)
-
         event_image_streamer_node.get_logger().info(f'Subscribing to image topic: {event_image_streamer_node.input_image_topic}')
         event_image_streamer_node.get_logger().info(f'Waiting for reception of first image message..')
         try:
