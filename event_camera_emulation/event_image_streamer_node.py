@@ -8,6 +8,7 @@ topics and publishes results in ROS topics.
 import os
 import sys
 import time
+import pickle
 import datetime
 
 import cv2
@@ -57,7 +58,8 @@ class EventImageStreamerNode(Node):
         self.declare_parameter('use_log_diff', False)
         self.declare_parameter('method', '')
         self.declare_parameter('blur_images', False)
-        self.declare_parameter('save_data', False)
+        self.declare_parameter('save_image_data', False)
+        self.declare_parameter('save_event_data', False)
         self.declare_parameter('save_data_on_trigger', False)
         self.declare_parameter('output_dir_path', '/tmp')
 
@@ -75,7 +77,8 @@ class EventImageStreamerNode(Node):
         self.use_log_diff = self.get_parameter('use_log_diff').value
         self.method = self.get_parameter('method').value
         self.blur_images = self.get_parameter('blur_images').value
-        self.save_data = self.get_parameter('save_data').value
+        self.save_image_data = self.get_parameter('save_image_data').value
+        self.save_event_data = self.get_parameter('save_event_data').value
         self.save_data_on_trigger = self.get_parameter('save_data_on_trigger').value
         self.output_dir_path = self.get_parameter('output_dir_path').value
 
@@ -110,7 +113,7 @@ class EventImageStreamerNode(Node):
         self.ros_triggered = False
 
         # Set up output data directory:
-        if self.save_data:
+        if self.save_image_data or self.save_event_data:
             output_sub_dir_path = f'{self.get_name()}_output_' + \
                                   datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             self.output_dir_path = os.path.join(self.output_dir_path, output_sub_dir_path)
@@ -159,17 +162,22 @@ class EventImageStreamerNode(Node):
                                                                       self.theta, self.record_off_events, 
                                                                       self.register_off_events_as_on, 
                                                                       use_log_diff=self.use_log_diff)
-
                 visual_events_image = self.e_camera_emulator.get_visual_events_image(events_image)
 
-                if self.save_data:
+                if self.save_image_data or self.save_event_data:
                     if self.save_data_on_trigger and not self.ros_triggered:
                         pass
                     else:
                         filename_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                        cv2.imwrite(os.path.join(self.output_dir_path, '{}_ece_rgb_image_1.png'.format(filename_suffix)), self.previous_image)
-                        cv2.imwrite(os.path.join(self.output_dir_path, '{}_ece_rgb_image_2.png'.format(filename_suffix)), self.current_image)
-                        cv2.imwrite(os.path.join(self.output_dir_path, '{}_ece_visual_events_image.png'.format(filename_suffix)), visual_events_image)
+                        if self.save_image_data:
+                            cv2.imwrite(os.path.join(self.output_dir_path, f'{filename_suffix}_ece_rgb_image_1.png'), self.previous_image)
+                            cv2.imwrite(os.path.join(self.output_dir_path, f'{filename_suffix}_ece_rgb_image_2.png'), self.current_image)
+                            cv2.imwrite(os.path.join(self.output_dir_path, f'{filename_suffix}_ece_visual_events_image.png'), visual_events_image)
+                            cv2.imwrite(os.path.join(self.output_dir_path, f'{filename_suffix}_ece_events_image.png'), events_image)
+
+                        if self.save_event_data:
+                            with open(os.path.join(self.output_dir_path, f'{filename_suffix}_ece_events_array.pkl'), 'wb') as handle:
+                                pickle.dump(events_image, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
                 if self.publish_output:
                     events_image_msg = self.bridge.cv2_to_imgmsg(events_image, encoding="passthrough")
