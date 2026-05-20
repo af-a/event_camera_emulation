@@ -62,6 +62,8 @@ class EventImageStreamerNode(Node):
         self.declare_parameter('save_image_data', False)
         self.declare_parameter('save_event_data', False)
         self.declare_parameter('save_data_on_trigger', False)
+        self.declare_parameter('scale_images', True)
+        self.declare_parameter('scale_factor', 0.25)
         self.declare_parameter('rate', 30.)
         self.declare_parameter('output_dir_path', '/tmp')
 
@@ -82,6 +84,8 @@ class EventImageStreamerNode(Node):
         self.save_image_data = self.get_parameter('save_image_data').value
         self.save_event_data = self.get_parameter('save_event_data').value
         self.save_data_on_trigger = self.get_parameter('save_data_on_trigger').value
+        self.scale_images = self.get_parameter('scale_images').value
+        self.scale_factor = self.get_parameter('scale_factor').value
         self.rate = self.get_parameter('rate').value
         self.output_dir_path = self.get_parameter('output_dir_path').value
 
@@ -105,6 +109,9 @@ class EventImageStreamerNode(Node):
                 self.get_logger().info(f'Output directory does not exist! Creating now...')
                 if not os.path.exists(self.output_dir_path):
                     os.makedirs(self.output_dir_path)
+
+        if self.scale_images:
+            self.get_logger().info(f'Will scale images by a factor of {self.scale_factor}')
 
     def on_configure(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().info(f'In state "{state.label}". Transitioning to "configure"')
@@ -197,6 +204,9 @@ class EventImageStreamerNode(Node):
                 if self.camera_device_.isOpened():
                     self.get_logger().info(f'{GREEN}Successfully opened camera device{RESET}')
                     _, self.previous_image = self.camera_device_.read()
+                    if self.scale_images:
+                        self.previous_image = cv2.resize(self.previous_image, (0, 0), 
+                                                         fx=self.scale_factor, fy=self.scale_factor)
                     self.active = True
                 else:
                     self.get_logger().error(f'Could not open camera device!')
@@ -210,6 +220,9 @@ class EventImageStreamerNode(Node):
                     # self.get_logger().info(f'[DEBUG] dir(self): {dir(self)}')
                     try:
                         self.previous_image = self.bridge.imgmsg_to_cv2(self.current_image_msg, "bgr8")
+                        if self.scale_images:
+                            self.previous_image = cv2.resize(self.previous_image, (0, 0), 
+                                                             fx=self.scale_factor, fy=self.scale_factor)
                         self.active = True
                     except CvBridgeError as e:
                         self.get_logger().warn(f'Failed to convert image message to opencv format! Error: {e}')
@@ -226,6 +239,10 @@ class EventImageStreamerNode(Node):
                 except CvBridgeError as e:
                     self.get_logger().warn(f'Failed to convert image message to opencv format! Error: {e}')
                     return
+
+            if self.scale_images:
+                self.current_image = cv2.resize(self.current_image, (0, 0), 
+                                                fx=self.scale_factor, fy=self.scale_factor)
 
             if self.compute_from_rgb:
                 events_image = self.e_camera_emulator.get_events_image_rgb(self.current_image, self.previous_image, 
