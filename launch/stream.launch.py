@@ -112,7 +112,7 @@ def generate_launch_description():
     shutdown_node = RegisterEventHandler(
         OnStateTransition(
             target_lifecycle_node=event_image_streamer_node,
-            goal_state='shuttingdown',
+            goal_state='finalized',
             entities=[
                 EmitEvent(event=ShutdownProcess(process_matcher=matches_action(event_image_streamer_node))),
             ],
