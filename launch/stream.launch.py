@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown, RegisterEventHandler, EmitEvent
 from launch.substitutions import LaunchConfiguration
